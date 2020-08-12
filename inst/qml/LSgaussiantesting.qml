@@ -133,16 +133,19 @@ Form {
 
 	LS.LStestinginference
 	{
-		plotsBothSampleProportion: qsTr("Observed data")
+		plotsBothSampleProportion:	qsTr("Observed data")
+		bfTypevsName:				"priors.name"
 	}
 
 	LS.LStestingsequential
 	{
-		enabled: gaussianDataInput.dataType.value !== "dataCounts"
+		enabled: 					gaussianDataInput.dataType.value !== "dataCounts"
+		bfTypevsNameSequential:		"priors.name"
 	}
 
-	LS.LStestingpredictions{
-		predictionPlotProp: qsTr("Sample means")
+	LS.LStestingpredictions
+	{
+		predictionPlotProp:			qsTr("Sample means")
 	}
 
 }

@@ -14,13 +14,14 @@ Description
 	website:		"www.jasp-stats.org"
 	license:		"GPL (>= 2)"
 
+/*
 	Package { name: "MGLM" }
 	Package { name: "HDInterval" }
 	Package { name: "DT" }
 	Package { name: "MCMCpack" }
 	Package { name: "extraDistr" }
 	Package { name: "ggplot2" }
-
+*/
 
 	GroupTitle
 	{
