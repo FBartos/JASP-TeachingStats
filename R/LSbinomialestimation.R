@@ -78,7 +78,7 @@ LSbinomialestimation   <- function(jaspResults, dataset, options, state = NULL){
   
   
   ### prediction
-  if(options[["predictionTable"]]).tablepredictionsBinomialLS(jaspResults, data, ready, options)
+  if(options[["predictionTable"]]).tablePredictionsBinomialLS(jaspResults, data, ready, options)
   
   # plot
   if(options[["plotsPredictions"]]){
@@ -1059,7 +1059,7 @@ LSbinomialestimation   <- function(jaspResults, dataset, options, state = NULL){
   
   return()
 }
-.tablepredictionsBinomialLS        <- function(jaspResults, data, ready, options){
+.tablePredictionsBinomialLS        <- function(jaspResults, data, ready, options){
   
   containerPredictions <- .containerPredictionsLS(jaspResults, options, "bin_est")
   

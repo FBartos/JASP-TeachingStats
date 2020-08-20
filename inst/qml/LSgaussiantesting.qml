@@ -133,6 +133,8 @@ Form {
 
 	LS.LStestinginference
 	{
+		plotsPredictionsObserved:	qsTr("Observed data")
+		plotsPosteriorObserved:		qsTr("Observed data")
 		plotsBothSampleProportion:	qsTr("Observed data")
 		bfTypevsName:				"priors.name"
 	}

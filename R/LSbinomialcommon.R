@@ -142,9 +142,6 @@
 }
 .summaryBinomialLS     <- function(jaspResults, data, options, analysis){
   
-  if(!options[["dataSummary"]] && !options[["introText"]])
-    return()
-  
   if(is.null(jaspResults[["summaryContainer"]])){
     summaryContainer <- createJaspContainer("Data Input")
     summaryContainer$position <- 1
@@ -157,7 +154,7 @@
   if(options[["introText"]] && is.null(summaryContainer[['summaryText']])){
     
     summaryText <- createJaspHtml()
-    summaryText$dependOn(c("introText", "dataSummary"))
+    summaryText$dependOn(c("introText", "dataType"))
     summaryText$position <- 1
     
     summaryText[['text']] <- .explanatoryTextLS("data", options, analysis)
@@ -330,6 +327,18 @@
     
     return(output)
   }
+}
+.predictBinomialValuesLS    <- function(data, prior, n){
+  
+  x <- 0:n
+  
+  if(prior[["type"]] == "spike"){
+    y <- dbinom(x, n, prior[["parPoint"]])
+  }else if(prior[["type"]] == "beta"){
+    y <- sapply(x, function(s)extraDistr::dbbinom(s, n, prior[["parAlpha"]] + data$nSuccesses, prior[["parBeta"]] + data$nFailures))
+  }
+  
+  return(y)
 }
 .betaHDILS                  <- function(alpha, beta, coverage){
   
@@ -788,12 +797,7 @@
 .dataHistBinomialLS2        <- function(data, prior, n){
   
   x <- 0:n
-  
-  if(prior[["type"]] == "spike"){
-    y <- dbinom(x, n, prior[["parPoint"]])
-  }else if(prior[["type"]] == "beta"){
-    y <- sapply(x, function(s)extraDistr::dbbinom(s, n, prior[["parAlpha"]] + data$nSuccesses, prior[["parBeta"]] + data$nFailures))
-  }
+  y <- .predictBinomialValuesLS(data, prior, n)
   
   x_new <- x[sort(rep(1:length(x),2))] + c(-.5, +.5)
   y_new <- y[sort(rep(1:length(x),2))]

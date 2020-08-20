@@ -16,7 +16,7 @@
 #
 
 LSbinomialtesting   <- function(jaspResults, dataset, options, state = NULL){
-
+saveOptions(options)
   # a vector of two, first for data, second for hypotheses
   ready <- .readyBinomialLS(options)
 
@@ -72,10 +72,11 @@ LSbinomialtesting   <- function(jaspResults, dataset, options, state = NULL){
   
   
   ### posterior predictive
-  if(options[["predictionTable"]]).tablepredictionsBinomialLS(jaspResults, data, ready, options)
+  if(options[["predictionTable"]]).tablePredictionsBinomialLS2(jaspResults, data, ready, options)
   if(options[["plotsPredictionsPost"]]){
     if(options[["plotsPredictionPostType"]] != "conditional").plotsPredictionsBinomial2LS(jaspResults, data, ready, options, type = "Posterior")
     if(options[["plotsPredictionPostType"]] == "conditional").plotsPredictionsIndividualBinomial2LS(jaspResults, data, ready, options, type = "Posterior")
+    if(options[["predictionPostPlotTable"]]).tablePosteriorPredictions(jaspResults, data, ready, options)
   }
   
   return()
@@ -669,7 +670,7 @@ LSbinomialtesting   <- function(jaspResults, dataset, options, state = NULL){
       }
       
       plotsPredictions$plotObject <- p
-    }  
+    }
   }
 
   return()
@@ -824,6 +825,58 @@ LSbinomialtesting   <- function(jaspResults, dataset, options, state = NULL){
     }
   }
   
+  return()
+}
+.tablePosteriorPredictions              <- function(jaspResults, data, ready, options){
+
+  containerPlots <- .containerPrediction2PlotsLS(jaspResults, options, "bin_test", "Posterior")
+  
+  if(is.null(containerPlots[["tablePredictions"]])){
+    
+    tablePredictions <- createJaspTable()
+    
+    tablePredictions$position <- 3
+    tablePredictions$dependOn(.BinomialLS_data_dependencies)
+    containerPlots[["tablePredictions"]] <- tablePredictions
+    
+    
+    if(options[["predictionPostPlotProp"]]){
+      tablePredictions$addColumnInfo(name = "successes", title = gettext("Proportion of Successes"), type = "number")
+      tablePredictions$addColumns(c(0:options[["predictionN"]])/options[["predictionN"]])
+    }else{
+      tablePredictions$addColumnInfo(name = "successes", title = gettext("Successes"), type = "integer")
+      tablePredictions$addColumns(0:options[["predictionN"]])
+    }
+    
+    if(options[["plotsPredictionPostType"]] %in% c("joint", "conditional")){
+      for(i in 1:length(options[["priors"]])){
+        tablePredictions$addColumnInfo(name = paste0("hyp_", i), title = gettextf("P(Successes|%s)", options[["priors"]][[i]]$name), type = "number")
+      }
+    }else if(options[["plotsPredictionPostType"]] == "marginal"){
+      tablePredictions$addColumnInfo(name = "marginal", title = gettextf("P(Successes)"), type = "number")
+    }
+    
+    
+    temp_results <- .testBinomialLS(data, options[["priors"]])
+    temp_prob    <- NULL
+    
+    for(i in 1:length(options[["priors"]])){
+      temp_prob <- cbind(temp_prob, .predictBinomialValuesLS(data, options[["priors"]][[i]], options[["predictionN"]]))
+    }
+    
+    if(options[["plotsPredictionPostType"]] == "conditional"){
+      for(i in 1:length(options[["priors"]])){
+        tablePredictions$addColumns(temp_prob[,i])
+      }
+    }else if(options[["plotsPredictionPostType"]] == "joint"){
+      for(i in 1:length(options[["priors"]])){
+        tablePredictions$addColumns(temp_prob[,i]*temp_results[i,"posterior"])
+      }
+    }else if(options[["plotsPredictionPostType"]] == "marginal"){
+      tablePredictions$addColumns(apply(temp_prob*matrix(temp_results[,"posterior"], byrow = T, ncol = length(options[["priors"]]), nrow = options[["predictionN"]] + 1), 1, sum))
+    }
+    
+  }
   return()
 }
 .plotsPredAccuracyBinomial2LS <- function(jaspResults, data, ready, options){
@@ -1282,4 +1335,72 @@ LSbinomialtesting   <- function(jaspResults, dataset, options, state = NULL){
   }
   
   return()
+}
+.tablePredictionsBinomialLS2    <- function(jaspResults, data, ready, options){
+  
+  containerPredictions <- .containerPredictionsLS(jaspResults, options, "bin_test")
+  
+  if(is.null(containerPredictions[["predictionsTable"]])){
+    
+    predictionsTable <- createJaspTable()
+    
+    predictionsTable$position <- 2
+    predictionsTable$dependOn(c(.BinomialLS_data_dependencies, "predictionN"))
+    
+    predictionsTable$addColumnInfo(name = "hypothesis",     title = gettext("Model"),                     type = "string")
+    predictionsTable$addColumnInfo(name = "posterior",      title = gettextf("Posterior (%s)", "\u03B8"), type = "string")
+    predictionsTable$addColumnInfo(name = "prob",           title = gettext("P(H|data)"),                 type = "number")
+    predictionsTable$addColumnInfo(name = "posteriorMean",  title = gettext("Posterior Mean"),            type = "number")
+    predictionsTable$addColumnInfo(name = "predictive",     title = gettext("Prediction (Successes)"),    type = "string")
+    predictionsTable$addColumnInfo(name = "predictiveMean", title = gettext("Prediction Mean"),           type = "number")
+    
+    predictionsTable$setExpectedSize(length(options[["priors"]]))
+    
+    containerPredictions[["predictionsTable"]] <- predictionsTable
+    
+    if(!ready[2]){
+      
+      return()
+      
+    }else{
+      
+      temp_tests <- .testBinomialLS(data, options[["priors"]])
+      temp_means <- NULL
+      # add rows for each hypothesis
+      for(i in 1:length(options[["priors"]])){
+        
+        temp_results    <- .estimateBinomialLS(data, options[["priors"]][[i]])
+        temp_prediction <- .predictBinomialLS(data, options[["priors"]][[i]], options)
+        temp_means      <- rbind(temp_means, c(temp_results$mean * temp_tests[i, "posterior"], temp_prediction$mean * temp_tests[i, "posterior"]))
+        
+        temp_row <- list(
+          hypothesis      = options[["priors"]][[i]]$name,
+          posterior       = temp_results$distribution,
+          prob            = temp_tests[i, "posterior"],
+          posteriorMean   = temp_results$mean,
+          predictive      = temp_prediction$distribution,
+          predictiveMean  = temp_prediction$mean
+        )
+        
+        predictionsTable$addRows(temp_row)
+      }
+      
+      predictionsTable$addRows(list(
+        hypothesis      = "Marginal",
+        posteriorMean   = sum(temp_means[,1]),
+        predictiveMean  = sum(temp_means[,2])
+      ))
+      
+      # add footnote clarifying what dataset was used
+      predictionsTable$addFootnote(gettextf(
+        "The prediction for %s %s is based on %s %s and %s %s.",
+        options[["predictionN"]], ifelse(options[["predictionN"]] == 1, gettext("observation"), gettext("observations")),
+        data$nSuccesses, ifelse(data$nSuccesses == 1, gettext("success"), gettext("successes")),
+        data$nFailures, ifelse(data$nFailures == 1, gettext("failure"), gettext("failures"))
+      ))
+      
+    }
+  }
+  
+  return()  
 }

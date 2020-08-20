@@ -27,6 +27,8 @@ Section
 	title: qsTr("Inference")
 	columns: 2
 
+	property alias plotsPredictionsObserved:	plotsPredictionsObserved.label
+	property alias plotsPosteriorObserved:		plotsPosteriorObserved.label
 	property alias plotsBothSampleProportion:	plotsBothSampleProportion.label
 	property alias bfTypevsName: 				bfTypevsName.source
 
@@ -418,7 +420,8 @@ Section
 		CheckBox
 		{
 			name:		"plotsPredictionsObserved"
-			label:		qsTr("Observed data")
+			id:			plotsPredictionsObserved
+			label:		qsTr("Observed proportion")
 			checked:	false
 		}
 	}
@@ -620,7 +623,13 @@ Section
 
 		}
 
-		CheckBox{name: "plotsPosteriorObserved"; label: qsTr("Observed data"); checked: false	}
+		CheckBox
+		{
+			name:	"plotsPosteriorObserved"
+			id:		plotsPosteriorObserved
+			label:	qsTr("Observed proportion")
+			checked: false
+		}
 	}
 
 

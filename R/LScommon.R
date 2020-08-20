@@ -1181,7 +1181,7 @@ saveOptions <- function(options){
   if(options[["introText"]] && is.null(containerIterativeInterval[['introText']])){
     
     introText <- createJaspHtml()
-    introText$dependOn("introText")
+    introText$dependOn(c("introText", "plotsIterativeIntervalType"))
     introText$position <- 1
     
     introText[['text']] <- .explanatoryTextLS("sequential_interval", options, analysis)
@@ -1326,7 +1326,8 @@ saveOptions <- function(options){
       type))
     containerPlots$dependOn(c(
       ifelse(type == "Prior", "plotsPredictions",       "plotsPredictionsPost"),
-      ifelse(type == "Prior", "plotsPredictionType",    "plotsPredictionPostType")
+      ifelse(type == "Prior", "plotsPredictionType",    "plotsPredictionPostType"),
+      if(type == "Posterior") "predictionN"
     ))
     containerPlots$position <- ifelse(type == "Prior", 4, 10)
     jaspResults[[paste0("containerPlotsPrediction", type)]] <- containerPlots 
@@ -1338,7 +1339,7 @@ saveOptions <- function(options){
   if(options[["introText"]] && is.null(containerPlots[['introText']])){
     
     introText <- createJaspHtml()
-    introText$dependOn("introText")
+    introText$dependOn(c("introText", ifelse(type == "Prior", "plotsPredictionType", "plotsPredictionPostType")))
     introText$position <- 1
     
     introText[['text']] <- .explanatoryTextLS("prediction_plots", options, analysis, type)
@@ -1513,18 +1514,18 @@ saveOptions <- function(options){
         )
       ),
       "dataCounts"    = gettextf(
-        "The 'Specify counts' option allows to use the analysis with aggregated results. %s It means that the %s are updated only once, with the complete data at once. However, the lack of information about the occurence of individual observations prevents the use of sequential analysis.",
+        "The 'Specify counts' option allows to use the analysis with aggregated results. %s It means that the %s are updated only once, with the complete data at once. However, the lack of information about the occurrence of individual observations prevents the use of sequential analysis.",
         ifelse(binomial,
-               gettext("The neccessary information is the number of successes ('Successes') and the number of failure ('Failures')."),
-               gettext("The neccessary information is the number observed mean ('Mean'), the standard deviation of the normal distribution of the population ('SD'), and the number of observations ('Observations').")
+               gettext("The necessary information is the number of successes ('Successes') and the number of failures ('Failures')."),
+               gettext("The necessary information is the number observed mean ('Mean'), the standard deviation of the normal distribution of the population ('SD'), and the number of observations ('Observations').")
         ),
         ifelse(estimation, gettext("Models"), gettext("Hypotheses"))
       ),
       "dataSequence"  = gettextf(
         "The 'Enter sequence' option allows to use the analysis and continuously update the data. %s",
         ifelse(binomial,
-               gettext("The neccessary information are the individual observed outcomes written into 'Comma-separated sequence of observations', and classification of the observation types into the ones that represent success ('Successes') and failure ('Failures')."),
-               gettext("The neccessary information are the individual numeric outcomes written into 'Comma-separated sequence of observations' and the standard deviation of the normal distribution of the population ('SD').")
+               gettext("The necessary information are the individual observed outcomes written into 'Comma-separated sequence of observations', and classification of the observation types into the ones that represent success ('Successes') and failures ('Failures')."),
+               gettext("The necessary information are the individual numeric outcomes written into 'Comma-separated sequence of observations' and the standard deviation of the normal distribution of the population ('SD').")
         )
       )
     )
@@ -1561,7 +1562,7 @@ saveOptions <- function(options){
       analysis,
       "bin_test"   = gettextf(
         "The 'Binomial Testing' analysis offers two types of prior distributions for the parameter %1$s that represents the underlying proportion of successes: 
-        <ul><li>'Spike(%2$s)' - for concentrating all probability density at one location (%2$s). The marginal likelihood corresponds to a density of binomial distribution at value corresponding to the observed number of successes, size equal to the number of observations, and with the probability parameter equal to the location of the spike.</li><li>'Beta(%3$s, %4$s)' - for using a beta distribution with two shape parameters %3$s and %4$s. The marginal likelihood corresponds to a density of a beta binomial distribution at value corresponding to the observed number of successes, size equal to the number of observations, and with the two shape parameters %3$s and %4$s corresponding to the shape parameters of the prior beta distribution.</li></ul>",
+        <ul><li>'Spike(%2$s)' - for concentrating all probability density at one location (%2$s). The marginal likelihood corresponds to a density of binomial distribution at value corresponding to the observed number of successes, size equal to the number of observations, and with the probability parameter equal to the location of the spike.</li><li>'Beta(%3$s, %4$s)' - for using a beta distribution with two shape parameters %3$s and %4$s. The marginal likelihood corresponds to a density of a beta-binomial distribution at value corresponding to the observed number of successes, size equal to the number of observations, and with the two shape parameters %3$s and %4$s corresponding to the shape parameters of the prior beta distribution.</li></ul>",
         "\u03B8", "\u03B8\u2080", "\u03B1", "\u03B2"),
       "gauss_test" = gettextf(
         "The 'Gaussian Testing' analysis offers two types of prior distributions for the parameter %1$s of a normal distribution, Normal(%1$s, %2$s), with known standard deviation %2$s: 
@@ -1633,7 +1634,7 @@ saveOptions <- function(options){
         text,
         "Prior"     = "",
         "Posterior" = gettextf(
-          " Furthermore, the 'Observed data' checkbox allows to visualized the observed %s as a black cross in the figure.",
+          " Furthermore, the 'Observed data' checkbox allows to visualize the observed %s as a black cross in the figure.",
           ifelse(binomial, gettext("proportion of successes"), gettext("mean"))
         )
       )
@@ -1654,7 +1655,7 @@ saveOptions <- function(options){
           "The 'Marginal' option collapses across all individual %1$s, weighting them by their %2$s probability.%3$s It further allows to visualize different types of credible intervals ('CI'):%4$s",
           ifelse(type == "Prior", gettext("prior distribution"), gettext("posterior distribution")),
           ifelse(type == "Prior", gettext("prior"), gettext("posterior")),
-          ifelse(type == "Prior", gettext(""), gettext("The result represents the best estimate given all hypotheses and our prior believes about them together.")),
+          ifelse(type == "Prior", gettext(""), gettext("The result represents the best estimate given all hypotheses and our prior beliefs about them together.")),
           .CIsTextLS(type == "Posterior"))
       )
       
@@ -1718,7 +1719,7 @@ saveOptions <- function(options){
     )
     
     specific_text <- switch(
-      options[["plotsIterativeType"]],
+      options[["plotsIterativeIntervalType"]],
       "overlying"    = gettextf(
         "The 'All' option shows the probability of parameter %s lying inside of the specified range for all models in one figure, allowing for easier comparison.",
         ifelse(binomial, "\u03B8", "\u03BC")
@@ -1751,14 +1752,17 @@ saveOptions <- function(options){
     )
     
     predictions_text <- gettextf(
-      "The 'Posterior prediction' section allows to predict future data based on the estimated models.%s",
-      ifelse(estimation, gettext(" In case that prior based predictions are desired, the data can be removed from the 'Data' section (posterior after seeing zero data is equal to the prior)."), "")
+      "The 'Posterior prediction' section allows to predict future data based on the estimated models%s",
+      ifelse(estimation,
+             gettext(". In case that prior based predictions are desired, the data can be removed from the 'Data' section (posterior after seeing zero data is equal to the prior)."),
+             gettext(" and the marginal prediction based on the hypotheses weighted by the posterior probabilities.")
+      )
     )
     
     if(binomial){
       
       predictions_formulas <- gettextf(
-        "For a model with spike prior distribution for the parameter %1$s, predictions for 'N' future observation ('Future observations') follow a binomial distribution with the size N and the probability parameter %2$s equal to the location of the prior distribution. The mean of the predictions is a product of the size N and the probability parameter %2$s. For a model with a beta prior distribution for the parameter %1$s, the predictive distribution is a beta binomial distribution with the size N and shape parameters %3$s and %4$s equal to the shape parameters %3$s and %4$s of the model's posterior distribution. The mean of the predictions can be computed as N*%3$s/( %3$s + %4$s ).",
+        "For a model with spike prior distribution for the parameter %1$s, predictions for 'N' future observation ('Future observations') follow a binomial distribution with the size N and the probability parameter %2$s equal to the location of the prior distribution. The mean of the predictions is a product of the size N and the probability parameter %2$s. For a model with a beta prior distribution for the parameter %1$s, the predictive distribution is a beta-binomial distribution with the size N and shape parameters %3$s and %4$s equal to the shape parameters %3$s and %4$s of the model's posterior distribution. The mean of the predictions can be computed as N*%3$s/( %3$s + %4$s ).",
         "\u03B8", "\u03B8\u2080", "\u03B1", "\u03B2"
       )
       
@@ -1773,8 +1777,9 @@ saveOptions <- function(options){
     
     table_description <- gettextf(
       "The 'Prediction Summary' table displays numerical summaries for the individual models. It is composed of the following columns:
-    <ul><li>'Model' - the specified model's names</li><li>'Posterior (%1$s)' - the estimated posterior distribution for the parameter %1$s (used for prediction)</li><li>'Posterior Mean' - the mean of the specified posterior distribution</li><li>'Prediction%2$s' - the predictive distribution for the new data</li><li>'Prediction Mean' - the mean of predicted data</li></ul>", 
+    <ul><li>'Model' - the specified model's names</li><li>'Posterior (%1$s)' - the estimated posterior distribution for the parameter %1$s (used for prediction)</li>%2$s<li>'Posterior Mean' - the mean of the specified posterior distribution</li><li>'Prediction%3$s' - the predictive distribution for the new data</li><li>'Prediction Mean' - the mean of predicted data</li></ul>", 
       ifelse(binomial, "\u03B8", "\u03BC"),
+      ifelse(estimation, "", "<li>'P(H|data)' - the posterior probability of the hypothesis (after updating with the data)</li>"),
       ifelse(binomial, gettext(" (Successes)"), "")
     )
     
@@ -1793,7 +1798,7 @@ saveOptions <- function(options){
       )
       
       specific_text <- switch(
-        options[["predictionPlotType"]],
+        options[["plotsPredictionType"]],
         "overlying"    = gettext("The 'All' option shows all posterior predictive distributions on top of each other, allowing for easier comparison with a common density scale on the y-axis."),
         "stacked"      = gettext("The 'Stacked' option shows all posterior predictive distributions in one figure with a depth effect induced by plotting the additional distributions 'further' in the z-axis."),
         "individual"   = gettextf("The 'Individual' option shows posterior predictive distributions for each model individually in separate figures. It further allows to visualize different types of credible intervals ('CI'):%s",.CIsTextLS())
@@ -1804,37 +1809,40 @@ saveOptions <- function(options){
     }else{
       
       general_text <- gettextf(
-        "The 'Posterior predictive distribution' option displays figures of predictive distributions based on posterior distributions of the individual models. %1$s",
-        ifelse(text == "Prior",
+        "The '%1$s' option displays figures of predictive distributions based on posterior distributions of the individual models. %2$s",
+        ifelse(type == "Prior", gettext("Prior predictive distribution"), gettext("Posterior predictive distribution")),
+        ifelse(type == "Prior",
                gettextf(
-                 "Furthermore, the 'Observed data' checkbox allows to visualized the observed %s as a black cross in the figure.",
+                 "Furthermore, the '%1$s' checkbox allows to visualize the observed %2$s as a black cross in the figure.",
+                 ifelse(binomial, gettext("Observed proportion"), gettext("Observed data")),
                  ifelse(binomial, gettext("number of successes"), gettext("mean"))),
                gettextf(
-                 "Furthermore, The '%1$s' checkbox transforms the figures with predicted data%2$s into figures with %3$s.",
+                 "Furthermore, The '%1$s' checkbox transforms the figures with predicted data%2$s into figures with %3$s%4$s",
                  ifelse(binomial, gettext("Show sample proportions"), gettext("Show sample means")),
                  ifelse(binomial, gettext(" (number of successes)"), ""),
-                 ifelse(binomial, gettext("sample proportions"), gettext("sample means"))
+                 ifelse(binomial, gettext("sample proportions"), gettext("sample means")),
+                 ifelse(type == "Posterior" && binomial, gettext(" and the 'Predictions table' checkbox shows exact probabilities for every predicted number of successes."), ".")
                ))
       )
       
       specific_text <- switch(
-        options[[ifelse(text == "Prior", "plotsPriorType", "plotsPosteriorType")]],
+        options[[ifelse(type == "Prior", "plotsPredictionType", "plotsPredictionPostType")]],
         "conditional" = gettextf(
           "The 'Conditional' option shows all %1$s for parameter %2$s independently, as if they were considered as individual models (without the existence of other hypotheses). It further allows to visualize different types of credible intervals ('CI'):%3$s",
-          ifelse(text == "Prior", gettext("prior predictive distribution"), gettext("posterior predictive distribution")),
+          ifelse(type == "Prior", gettext("prior predictive distribution"), gettext("posterior predictive distribution")),
           ifelse(binomial, "\u03B8", "\u03BC"),
-          .CIsTextLS(text == "Posterior")),
+          .CIsTextLS(FALSE)),
         "joint"       = gettextf(
           "The 'Joint' option shows all %1$s for parameter %2$s when considered together in light of the other hypotheses (by multiplying the density of the %1$s by the %3$s probability of the hypothesis). In addition, the 'Overlying' option allows to visualize all %1$s on top of each other, allowing for easier comparison with a common density and probability scale on the y-axis and the 'Stacked' option shows all %1$s in one figure with a depth effect induced by plotting the additional distributions 'further' in the z-axis.",
-          ifelse(text == "Prior", gettext("prior predictive distribution"), gettext("posterior predictive distribution")),
+          ifelse(type == "Prior", gettext("prior predictive distribution"), gettext("posterior predictive distribution")),
           ifelse(binomial, "\u03B8", "\u03BC"),
-          ifelse(text == "Prior", gettext("prior"), gettext("posterior"))),
+          ifelse(type == "Prior", gettext("prior"), gettext("posterior"))),
         "marginal"    = gettextf(
           "The 'Marginal' option collapses across all individual %1$s, weighting them by their %2$s probability.%3$s It further allows to visualize different types of credible intervals ('CI'):%4$s",
-          ifelse(text == "Prior", gettext("prior predictive distribution"), gettext("posterior predictive distribution")),
-          ifelse(text == "Prior", gettext("prior"), gettext("posterior")),
-          ifelse(text == "Prior", gettext(""), gettext("The result represents the best estimate given all hypotheses and our prior believes about them together.")),
-          .CIsTextLS(text == "Posterior"))
+          ifelse(type == "Prior", gettext("prior predictive distribution"), gettext("posterior predictive distribution")),
+          ifelse(type == "Prior", gettext("prior"), gettext("posterior")),
+          ifelse(type == "Prior", gettext(""), gettext("The result represents the best estimate given all hypotheses and our prior beliefs about them together.")),
+          .CIsTextLS(FALSE))
       )
       
       out <- paste0(general_text, " ", specific_text)
@@ -1863,7 +1871,7 @@ saveOptions <- function(options){
       "conditional" = gettext("The 'Conditional' option shows all predictive accuracies independently, as if they were considered as individual models (without the existence of other hypotheses)."),
       "joint"       = gettext("The 'Joint' option shows all predictive accuracies when taking the prior probabilities of hypotheses into account (by multiplying conditional predictive accuracies by prior probabilities of the hypotheses)."),
       "marginal"    = gettext("The 'Normalized' option shows all predictive accuracies considered together in light of the other hypotheses (by normalizing the joint predictive accuracies by the probability of the data, which equals to the posterior probability of the hypotheses at the given time point)."),
-      "BF"          = gettextf("The 'Bayes factor' option can compere the predictive accuracies of the hypotheses to the rest of the hypotheses ('vs. All'), the best hypothesis ('vs. best'), or a specific hypothesis selected in the 'vs.' dropdown. The nominator and denominator of the Bayes factors can be reversed by choosing the 'BF%2$s%1$s' option (quantifying the evidence in favor of the second hypothesis), or transformed to a log scale by choosing the 'log(BF%1$s%2$s)' option.", "\u2081", "\u2080")
+      "BF"          = gettextf("The 'Bayes factor' option can compare the predictive accuracies of the hypotheses to the rest of the hypotheses ('vs. All'), the best hypothesis ('vs. best'), or a specific hypothesis selected in the 'vs.' dropdown. The nominator and denominator of the Bayes factors can be reversed by choosing the 'BF%2$s%1$s' option (quantifying the evidence in favor of the second hypothesis), or transformed to a log scale by choosing the 'log(BF%1$s%2$s)' option.", "\u2081", "\u2080")
     )
     
     table_text <- gettext("The 'Updating table' option generates a numerical summary of the displayed figure.")
