@@ -104,8 +104,8 @@ Section
 										 plotsPredictionPostTypeCI.currentText == "HPD"
 								enabled: plotsPredictionPostCI.checked
 								name: "plotsPredictionPostCoverage"
-								label: qsTr("probability")
-								fieldWidth: 40
+								label: qsTr("coverage")
+								fieldWidth: 50
 								defaultValue: 95; min: 0; max: 100; inclusive: JASP.MaxOnly
 							}
 
@@ -191,8 +191,8 @@ Section
 										 plotsPredictionPostMarginalTypeCI.currentText == "HPD"
 								enabled: plotsPredictionPostMarginalCI.checked
 								name: "plotsPredictionPostMarginalCoverage"
-								label: qsTr("probability")
-								fieldWidth: 40
+								label: qsTr("coverage")
+								fieldWidth: 50
 								defaultValue: 95; min: 0; max: 100; inclusive: JASP.MaxOnly
 							}
 

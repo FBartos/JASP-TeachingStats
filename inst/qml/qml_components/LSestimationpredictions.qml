@@ -105,8 +105,8 @@ Section
 											plotsPredictionType.currentText == "HPD"
 								enabled: plotsPredictionCI.checked
 								name: "plotsPredictionCoverage"
-								label: qsTr("probability")
-								fieldWidth: 40
+								label: qsTr("coverage")
+								fieldWidth: 50
 								defaultValue: 95; min: 0; max: 100; inclusive: JASP.MaxOnly
 							}
 
