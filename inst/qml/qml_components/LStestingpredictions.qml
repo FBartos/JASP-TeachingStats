@@ -43,6 +43,13 @@ Section
 		{
 			name: "predictionTable"
 			label: qsTr("Summary")
+
+			DropDown
+			{
+				label:	qsTr("Point estimate")
+				name: "predictionTableEstimate"
+				values: ["mean", "median", "mode"]
+			}
 		}
 
 
@@ -67,16 +74,34 @@ Section
 
 			CheckBox
 			{
-				name: "plotsPredictionsPost"; label: qsTr("Posterior predictive distribution"); checked: false	;
+				name:		"plotsPredictionsPost"
+				label:		qsTr("Posterior predictive distribution")
+				checked:	false
+
 				RadioButtonGroup
 				{
 					name: "plotsPredictionPostType"
+
 					RadioButton
 					{
 						value: "conditional"
 						label: qsTr("Conditional")
 						checked: true
 
+						CheckBox
+						{
+							label:	qsTr("Point estimate")
+							name: "plotsPredictionPostEstimate"
+							childrenOnSameRow: true
+
+							DropDown
+							{
+								name: "plotsPredictionPostEstimateType"
+								label: ""
+								values: ["mean", "median", "mode"]
+							}
+						}
+						
 						CheckBox
 						{
 							name: "plotsPredictionPostCI"
@@ -86,7 +111,6 @@ Section
 
 							DropDown
 							{
-								visible: plotsPredictionPostCI.checked
 								name: "plotsPredictionPostTypeCI"
 								label: ""
 								values: ["central", "HPD", "custom"]
@@ -165,6 +189,21 @@ Section
 					{
 						value: "marginal";
 						label: qsTr("Marginal")
+
+						CheckBox
+						{
+							label:	qsTr("Point estimate")
+							name: "plotsPredictionPostMarginalEstimate"
+							childrenOnSameRow: true
+
+							DropDown
+							{
+								name: "plotsPredictionPostMarginalEstimateType"
+								label: ""
+								values: ["mean", "median", "mode"]
+							}
+						}
+				
 
 						CheckBox
 						{

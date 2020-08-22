@@ -621,8 +621,8 @@ saveOptions <- function(options){
   
   return(plot)
 }
-.plotIndividualLS      <- function(all_lines, all_arrows, CI, CIall_lines, dfPoints = NULL, xRange, xName, yName = NULL, nRound = 3){ 
-  
+.plotIndividualLS      <- function(all_lines, all_arrows, point_estimate, CI, CIall_lines, dfPoints = NULL, xRange, xName, yName = NULL, nRound = 3){ 
+
   mappingLines   <- ggplot2::aes(x = x, y = y, group = g,)
   mappingArrows  <- ggplot2::aes(x = x , xend = x, y = y_start, yend = y_end, group = g)
   mappingArrows1 <- ggplot2::aes(x = x_start , xend = x_end, y = y, yend = y, group = g)
@@ -634,9 +634,13 @@ saveOptions <- function(options){
   y_max <- .getYMax(all_lines, all_arrows)
 
   # set the CI text
-  if(!is.null(CI)){
+  if(!is.null(CI) || !is.null(point_estimate)){
     # text for the interval
-    temp_label <- .CI_labelLS(CI, nRound)
+    temp_label <- .CI_labelLS(CI, nRound, point_estimate)
+  }else{
+    temp_label <- NULL
+  }
+  if(!is.null(CI)){
     CI         <- cbind.data.frame(CI, "y" = y_max * 1.05)
   }
   
@@ -677,8 +681,9 @@ saveOptions <- function(options){
           arrow   = ggplot2::arrow(angle = 90, length = ggplot2::unit(0.25, "cm")),
           color   = "black")
     }
-    
-    
+  }
+  
+  if(!is.null(CI) || !is.null(point_estimate)){
     label_y    <- if(length(temp_label) == 1) 1.10 else 1.25 - .07 * c(1:length(temp_label)) 
     for(i in 1:length(temp_label)){
       
@@ -703,9 +708,17 @@ saveOptions <- function(options){
                                  stroke = 1.25, fill = "grey")
   }
   
+  if(!is.null(point_estimate)){
+    if(!anyNA(point_estimate$x)){
+      g <- g + ggplot2::geom_point(data = point_estimate, mapping = mappingPoint, show.legend = FALSE,
+                                   inherit.aes = FALSE, size = 4, shape = 21, 
+                                   stroke = 1.25, fill = "grey") 
+    }
+  }
+  
   # x-axes
   g <- g + .plotXAxis(xName, xRange, FALSE)
-  g <- g + .plotYAxis(all_lines, all_arrows, CI)
+  g <- g + .plotYAxis(all_lines, all_arrows, temp_label)
   
   
   g <- g + JASPgraphs::themeJaspRaw() + 
@@ -720,19 +733,21 @@ saveOptions <- function(options){
   plot <- g
   return(plot)
 }
-.plotPredictionLS      <- function(dfHist, CI, xRange, xName, yName, nRound = 0, xBlacked = NULL,
+.plotPredictionLS      <- function(dfHist, point_estimate, CI, xRange, xName, yName, nRound = 0, xBlacked = NULL,
                                    proportions = FALSE, predictionN = NULL){
-  
+
   mappingHistogram  <- ggplot2::aes(x = x, y = y, fill = col)
   mappingArrows1    <- ggplot2::aes(x = x_start_adj , xend = x_end_adj, y = y, yend = y, group = g)
   mappingArrows2    <- ggplot2::aes(x = x_end_adj,  xend = x_start_adj, y = y, yend = y, group = g)
   mappingText       <- ggplot2::aes(x = x, y = y, label = label)
-  
-  if(!is.null(CI)){
+  mappingPoint      <- ggplot2::aes(x = x, y = y)
+
+  if(!is.null(CI) || !is.null(point_estimate)){
     # text for the interval
-    temp_label <- .CI_labelLS(CI, nRound)
-    
+    temp_label <- .CI_labelLS(CI, nRound, point_estimate)
     y_max_multiplier <- ifelse(length(temp_label) == 1, 1.15, 1.25)
+  }else{
+    temp_label <- NULL
   }
   
   yBreaks  <- JASPgraphs::getPrettyAxisBreaks(c(0, dfHist$y))
@@ -750,7 +765,7 @@ saveOptions <- function(options){
   
   obsYmax    <- max(dfHist$y)
   breaksYmax <- yBreaks[length(yBreaks)]
-  newymax    <- max(ifelse(!is.null(CI), y_max_multiplier + .05, 1.10) * obsYmax, breaksYmax)
+  newymax    <- max(ifelse(!is.null(CI) || !is.null(point_estimate), y_max_multiplier + .05, 1.10) * obsYmax, breaksYmax)
   
   dfHist$col <- "a"
   if(!is.null(CI)){
@@ -795,7 +810,9 @@ saveOptions <- function(options){
           arrow   = ggplot2::arrow(angle = 90, length = ggplot2::unit(0.25, "cm")),
           color   = "black")
     }
-    
+  }
+  
+  if(!is.null(CI) || !is.null(point_estimate)){
     r <- 0
     for(i in 1:length(temp_label)){
       
@@ -813,7 +830,14 @@ saveOptions <- function(options){
       )
       
       r <- r + .10
-      
+    }
+  }
+  
+  if(!is.null(point_estimate)){
+    if(!anyNA(point_estimate$x)){
+      g <- g + ggplot2::geom_point(data = point_estimate, mapping = mappingPoint, show.legend = FALSE,
+                                   inherit.aes = FALSE, size = 4, shape = 21, 
+                                   stroke = 1.25, fill = "grey") 
     }
   }
   
@@ -904,39 +928,59 @@ saveOptions <- function(options){
 }
 
 # support functions
-.CI_labelLS            <- function(CI, nRound){
-  temp_int <- sapply(1:nrow(CI), function(i){
-    if(is.na(CI$x_start[i])){
-      x <- "none"
-      #x <- "~symbol(\\306)"
-    }else if(CI$x_start[i] == CI$x_end[i]){
-      x <- paste(c(
-        "[",format(round(CI$x_start[i], nRound), nsmall = nRound),"]"
-      ), collapse = "")
-    }else{
-      x <- paste(c(
-        "[",format(round(CI$x_start[i], nRound), nsmall = nRound),", ",format(round(CI$x_end[i], nRound), nsmall = nRound),"]"
-      ), collapse = "")
+.CI_labelLS            <- function(CI, nRound, PE = NULL){
+  
+  if(!is.null(CI)){
+    temp_int <- sapply(1:nrow(CI), function(i){
+      if(is.na(CI$x_start[i])){
+        x <- "none"
+        #x <- "~symbol(\\306)"
+      }else if(CI$x_start[i] == CI$x_end[i]){
+        x <- paste(c(
+          "[",format(round(CI$x_start[i], nRound), nsmall = nRound),"]"
+        ), collapse = "")
+      }else{
+        x <- paste(c(
+          "[",format(round(CI$x_start[i], nRound), nsmall = nRound),", ",format(round(CI$x_end[i], nRound), nsmall = nRound),"]"
+        ), collapse = "")
+      }
+      return(x)
     }
-    return(x)
+    )
+    temp_int <- paste(temp_int, collapse = " and " )
+    temp_int <- paste("'",temp_int,"'")
+    
+    # text for the coverage
+    temp_cov <- paste(c("'",round(CI$coverage[1]*100), "% CI'"), collapse = "")
+    
+    
+    if(CI$g[1] == "HPD"){
+      temp_label <- paste(c(temp_cov,"['HPD']:",temp_int), collapse = "")
+    }else if(CI$g[1] == "custom"){
+      temp_label  <- paste(c("P({",format(round(CI$x_start, nRound), nsmall = nRound),"<=x}<=",
+                             (format(round(CI$x_end, nRound), nsmall = nRound)),")","=='",round(CI$coverage[1]*100)," %'"), collapse = "")
+    }else if(CI$g[1] == "support"){
+      temp_label <- paste(c("SI['[BF = ",CI$BF[1],"]']:",temp_int), collapse = "")
+    }else if(CI$g[1] == "central"){
+      temp_label <- paste(c(temp_cov,":",temp_int), collapse = "")
+    }
+    
+  }else{
+    temp_label <- NULL
   }
-  )
-  temp_int <- paste(temp_int, collapse = " and " )
-  temp_int <- paste("'",temp_int,"'")
-  
-  # text for the coverage
-  temp_cov <- paste(c("'",round(CI$coverage[1]*100), "% CI'"), collapse = "")
-  
-  
-  if(CI$g[1] == "HPD"){
-    temp_label <- paste(c(temp_cov,"['HPD']:",temp_int), collapse = "")
-  }else if(CI$g[1] == "custom"){
-    temp_label  <- paste(c("P({",format(round(CI$x_start, nRound), nsmall = nRound),"<=x}<=",
-                           (format(round(CI$x_end, nRound), nsmall = nRound)),")","=='",round(CI$coverage[1]*100)," %'"), collapse = "")
-  }else if(CI$g[1] == "support"){
-    temp_label <- paste(c("SI['[BF = ",CI$BF[1],"]']:",temp_int), collapse = "")
-  }else if(CI$g[1] == "central"){
-    temp_label <- paste(c(temp_cov,":",temp_int), collapse = "")
+
+  if(!is.null(PE)){
+    if(nrow(PE) > 1)
+      PE <- PE[1,]
+    PEl <- PE$l
+    if(is.numeric(PE$l))
+      PEl <- format(round(PEl, ifelse(PE$estimate == "mean", 3, nRound)), nsmall = ifelse(PE$estimate == "mean", 3, nRound))
+    temp_pe    <- paste0("'", PE$estimate,"'",  ":", "' ", PEl, ifelse(is.null(temp_label), " '", "; '"))
+    if(!is.null(temp_label)){
+      temp_label <- paste(temp_pe, temp_label, sep = "~")
+    }else{
+      temp_label <- temp_pe
+    }
   }
   
   if(nchar(temp_label) > 75){
@@ -1063,6 +1107,34 @@ saveOptions <- function(options){
   
   return()  
 }
+
+
+
+.estimatesContainerLS          <- function(jaspResults, options, analysis){
+  
+  if(is.null(jaspResults[["estimatesContainer"]])){
+    estimatesContainer <- createJaspContainer("Model")
+    estimatesContainer$position <- 2
+    estimatesContainer$dependOn("pointEstimate")
+    jaspResults[["estimatesContainer"]] <- estimatesContainer 
+  }else{
+    estimatesContainer <- jaspResults[["estimatesContainer"]]
+  }
+  
+  
+  if(options[["introText"]] && is.null(estimatesContainer[['introText']])){
+    
+    introText <- createJaspHtml()
+    introText$dependOn("introText")
+    introText$position <- 1
+    
+    introText[['text']] <- .explanatoryTextLS("estimates", options, "bin_est")
+    
+    estimatesContainer[['introText']] <- introText    
+  }
+  
+  return(estimatesContainer)
+}
 .containerPlotsLS              <- function(jaspResults, options, analysis, type){
   
   if(is.null(jaspResults[[paste0("containerPlots", type)]])){
@@ -1137,7 +1209,7 @@ saveOptions <- function(options){
         "individual"= gettext("Individual")
       )))
     containerIterative$position <- 6
-    containerIterative$dependOn(c("plotsIterative", "plotsIterativeType"))
+    containerIterative$dependOn(c("plotsIterative", "plotsIterativeType", "plotsIterativeEstimateType"))
     
     jaspResults[["containerIterative"]] <- containerIterative
   }else{
@@ -1222,7 +1294,7 @@ saveOptions <- function(options){
   if(is.null(jaspResults[["containerPredictions"]])){
     containerPredictions <- createJaspContainer(title = gettext("Prediction Summary"))
     containerPredictions$position <- 9
-    containerPredictions$dependOn("predictionTable")
+    containerPredictions$dependOn(c("predictionTable", "predictionTableEstimate"))
     
     jaspResults[["containerPredictions"]] <- containerPredictions
   }else{
@@ -1538,20 +1610,27 @@ saveOptions <- function(options){
       analysis,
       "bin_est"   = gettextf(
         "The 'Binomial Estimation' analysis offers two types of prior distributions for parameter %1$s that represents the underlying population proportion of successes: 
-        <ul><li>'Spike(%2$s)' - for concentrating all probability density at one location (%2$s). The prior median corresponds to the location of the spike. The posterior distribution is again a spike at the same location and corresponding median.</li><li>'Beta(%3$s, %4$s)' - for allocating probability density across all values of parameter %1$s according to a beta distribution with parameters %3$s and %4$s. The prior median can be approximated as (%3$s - 1/3) / (%3$s + %4$s - 2/3) if %3$s, %4$s > 1. After observing 'S' successes and 'F' failures, the posterior distribution updates to beta(%3$s + S, %4$s + F) with a median computed correspondingly.</li></ul>",
-        "\u03B8", "\u03B8\u2080", "\u03B1", "\u03B2"),
+        <ul><li>'Spike(%2$s)' - for concentrating all probability density at one location (%2$s). The prior %5$s corresponds to the location of the spike. The posterior distribution is again a spike at the same location and corresponding %5$s</li><li>'Beta(%3$s, %4$s)' - for allocating probability density across all values of parameter %1$s according to a beta distribution with parameters %3$s and %4$s. The prior %6$s. After observing 'S' successes and 'F' failures, the posterior distribution updates to beta(%3$s + S, %4$s + F) with a %5$s computed correspondingly.</li></ul>",
+        "\u03B8", "\u03B8\u2080", "\u03B1", "\u03B2",
+        options[["pointEstimate"]],
+        switch(
+          options[["pointEstimate"]],
+          "mean"   = gettextf("mean can be computed as %1$s / (%1$s + %2$s)", "\u03B1", "\u03B2"),
+          "median" = gettextf("median can be approximated as (%1$s - 1/3) / (%1$s + %2$s - 2/3) if %1$s, %2$s > 1", "\u03B1", "\u03B2"),
+          "mode"   = gettextf("mode can be computed as (%1$s - 1) / (%1$s + %2$s - 2) if %1$s, %2$s > 1", "\u03B1", "\u03B2")
+        )),
       "gauss_est" = gettextf(
         "The 'Gaussian Estimation' analysis offers two types of prior distributions for parameter %1$s of a normal distribution, Normal(%1$s, %2$s), with known standard deviation %2$s: 
-        <ul><li>'Spike(%3$s)' - for concentrating all probability density at one location (%3$s). The prior mean corresponds to the location of the spike. The posterior distribution is again a spike at the same location and corresponding mean.</li><li>'Normal(%3$s, %4$s)' - for allocating probability density across all values of parameter %1$s according to a normal distribution with parameters mean %3$s and standard deviation %4$s. The prior mean corresponds to the mean parameter of the normal distribution %3$s. After seeing 'N' observations with mean %5$s, the posterior distribution updates to normal( (%4$s%6$s*%5$s)/( (%2$s%6$s/N) + %4$s%6$s) + (%2$s%6$s*%3$s)/( (%2$s%6$s/N) + %4$s%6$s), 1/%7$s(1/%4$s%6$s + N/%2$s%6$s) ) with a mean corresponding to the mean of posterior distribution.</li></ul>",
-        "\u03BC", "\u03C3", "\u03BC\u2080", "\u03C3\u2080", "x&#772", "\u00B2", "\u221A"),
+        <ul><li>'Spike(%3$s)' - for concentrating all probability density at one location (%3$s). The prior %8$s corresponds to the location of the spike. The posterior distribution is again a spike at the same location and corresponding %8$s.</li><li>'Normal(%3$s, %4$s)' - for allocating probability density across all values of parameter %1$s according to a normal distribution with parameters mean %3$s and standard deviation %4$s. The prior %8$s corresponds to the mean parameter of the normal distribution %3$s. After seeing 'N' observations with mean %5$s, the posterior distribution updates to normal( (%4$s%6$s*%5$s)/( (%2$s%6$s/N) + %4$s%6$s) + (%2$s%6$s*%3$s)/( (%2$s%6$s/N) + %4$s%6$s), 1/%7$s(1/%4$s%6$s + N/%2$s%6$s) ) with %8$s corresponding to the mean of posterior distribution.</li></ul>",
+        "\u03BC", "\u03C3", "\u03BC\u2080", "\u03C3\u2080", "x&#772", "\u00B2", "\u221A", options[["pointEstimate"]]),
     )
     
     table_description <- gettextf(
     "The 'Estimation Summary' table displays numerical summaries for the individual models. It is composed of the following columns:
     <ul><li>'Model' - the specified model names</li><li>'Prior (%1$s)' - the specified prior distribution for parameter %1$s</li><li>'Prior %2$s' - the %3$s of the specified prior distribution</li><li>'Posterior (%1$s)' - the estimated posterior distribution for the parameter %1$s (i.e., the prior distribution updated with data)</li><li>'Posterior %2$s' - the %3$s of the posterior distribution</li></ul>", 
     "\u03B8",
-    ifelse(binomial, gettext("Median"), gettext("Mean")),
-    ifelse(binomial, gettext("median"), gettext("mean"))
+    .estimateTextLS(options[["pointEstimate"]]),
+    options[["pointEstimate"]]
     )
     
     out <- paste0(estimation_formulas, "\n", table_description)
@@ -1737,19 +1816,27 @@ saveOptions <- function(options){
       "The 'Posterior updating table' option generates a numerical summary of the updating process for parameter %s. The 'Observation' column tracks how many observations have been already encountered for the corresponding posterior distribution. The first row (observation = 0) corresponds to the prior distribution and the last row corresponds to the final posterior distribution after the prior distribution was updated with all observations.",
       ifelse(binomial, "\u03B8", "\u03BC"))
     
-  }else if(text == "predictions"){
     
-    predictions_formulas <- switch(
+    estimation_formulas <- switch(
       analysis,
       "bin_est"   = gettextf(
-        "The 'Binomial Estimation' analysis offers two types of prior distributions for parameter %1$s that represents the underlying proportion of successes: 
-        <ul><li>'Spike(%2$s)' - for concentrating all probability density at one location (%2$s). The prior median corresponds to the location of the spike. The posterior distribution is again a spike at the same location and corresponding median.</li><li>'Beta(%2$s, %3$s)' - for using a beta distribution with two shape parameters %3$s and %4$s. The prior median can be approximated as (%3$s - 1/3) / (%3$s + %4$s - 2/3) if %3$s, %4$s > 1. After observing 'S' successes and 'F' failures, the posterior distribution updates to beta(%3$s + S, %4$s + F) with a median computed correspondingly.</li></ul>",
-        "\u03B8", "\u03B8\u2080", "\u03B1", "\u03B2"),
+        "The 'Binomial Estimation' analysis offers two types of prior distributions for parameter %1$s that represents the underlying population proportion of successes: 
+        <ul><li>'Spike(%2$s)' - for concentrating all probability density at one location (%2$s). The prior %5$s corresponds to the location of the spike. The posterior distribution is again a spike at the same location and corresponding %5$s</li><li>'Beta(%3$s, %4$s)' - for allocating probability density across all values of parameter %1$s according to a beta distribution with parameters %3$s and %4$s. The prior %6$s. After observing 'S' successes and 'F' failures, the posterior distribution updates to beta(%3$s + S, %4$s + F) with a %5$s computed correspondingly.</li></ul>",
+        "\u03B8", "\u03B8\u2080", "\u03B1", "\u03B2",
+        options[["pointEstimate"]],
+        switch(
+          options[["pointEstimate"]],
+          "mean"   = gettextf("mean can be computed as %1$s / (%1$s + %2$s)", "\u03B1", "\u03B2"),
+          "median" = gettextf("median can be approximated as (%1$s - 1/3) / (%1$s + %2$s - 2/3) if %1$s, %2$s > 1", "\u03B1", "\u03B2"),
+          "mode"   = gettextf("mode can be computed as (%1$s - 1) / (%1$s + %2$s - 2) if %1$s, %2$s > 1", "\u03B1", "\u03B2")
+        )),
       "gauss_est" = gettextf(
         "The 'Gaussian Estimation' analysis offers two types of prior distributions for parameter %1$s of a normal distribution, Normal(%1$s, %2$s), with known standard deviation %2$s: 
-        <ul><li>'Spike(%3$s)' - for concentrating all probability density at one location (%3$s). The prior mean corresponds to the location of the spike. The posterior distribution is again a spike at the same location and corresponding mean.</li><li>'Normal(%3$s, %4$s)' - for using a normal distribution with mean %3$s and standard deviation %4$s. The prior mean corresponds to the mean parameter of the normal distribution %3$s. After seeing 'N' observations with mean %5$s, the posterior distribution updates to normal( (%4$s%6$s*%5$s)/( (%2$s%6$s/N) + %4$s%6$s) + (%2$s%6$s*%3$s)/( (%2$s%6$s/N) + %4$s%6$s), 1/%7$s(1/%4$s%6$s + N/%2$s%6$s) ) with a mean corresponding to the mean of posterior distribution.</li></ul>",
-        "\u03BC", "\u03C3", "\u03BC\u2080", "\u03C3\u2080", "x&#772", "\u00B2", "\u221A"),
+        <ul><li>'Spike(%3$s)' - for concentrating all probability density at one location (%3$s). The prior %8$s corresponds to the location of the spike. The posterior distribution is again a spike at the same location and corresponding %8$s.</li><li>'Normal(%3$s, %4$s)' - for allocating probability density across all values of parameter %1$s according to a normal distribution with parameters mean %3$s and standard deviation %4$s. The prior %8$s corresponds to the mean parameter of the normal distribution %3$s. After seeing 'N' observations with mean %5$s, the posterior distribution updates to normal( (%4$s%6$s*%5$s)/( (%2$s%6$s/N) + %4$s%6$s) + (%2$s%6$s*%3$s)/( (%2$s%6$s/N) + %4$s%6$s), 1/%7$s(1/%4$s%6$s + N/%2$s%6$s) ) with %8$s corresponding to the mean of posterior distribution.</li></ul>",
+        "\u03BC", "\u03C3", "\u03BC\u2080", "\u03C3\u2080", "x&#772", "\u00B2", "\u221A", options[["pointEstimate"]]),
     )
+    
+  }else if(text == "predictions"){
     
     predictions_text <- gettextf(
       "The 'Posterior prediction' section allows the prediction of future data based on the estimated models%s",
@@ -1762,15 +1849,27 @@ saveOptions <- function(options){
     if(binomial){
       
       predictions_formulas <- gettextf(
-        "For a model with a spike prior distribution for parameter %1$s, predictions for 'N' future observation ('Future observations') follow a binomial distribution with size N and chance parameter %2$s equal to the location of the prior distribution. The mean of the predictions is a product of the size N and the chance parameter %2$s. For a model with a beta prior distribution for parameter %1$s, the predictive distribution is a beta-binomial distribution with size N and posterior beta distribution parameters %3$s and %4$s. The mean of the predictions can be computed as N*%3$s/( %3$s + %4$s ).",
-        "\u03B8", "\u03B8\u2080", "\u03B1", "\u03B2"
+        "For a model with a spike prior distribution for parameter %1$s, predictions for 'N' future observation ('Future observations') follow a binomial distribution with size N and chance parameter %2$s equal to the location of the prior distribution. %5$s For a model with a beta prior distribution for parameter %1$s, the predictive distribution is a beta-binomial distribution with size N and posterior beta distribution parameters %3$s and %4$s. %6$s",
+        "\u03B8", "\u03B8\u2080", "\u03B1", "\u03B2",
+        switch(
+          options[["predictionTableEstimate"]],
+          "mean"   = gettextf("The mean prediction can be computed as N*%s", "\u03B8\u2080"),
+          "median" = "", # there is no simple solution
+          "mode"   = gettextf("The mode prediction can be usually computed as (N + 1)*%1$s rounded down to the closest integer if 0 < %1$s < 1", "\u03B8\u2080")
+        ),
+        switch(
+          options[["predictionTableEstimate"]],
+          "mean"   = gettextf("The mean of the predictions can be computed as N*%1$s/( %1$s + %2$s ).", "\u03B1", "\u03B2"),
+          "median" = "", # there is no simple solution
+          "mode"   = ""  # and I couldn't find analytical solution for this at all
+        )
       )
       
     }else{
       
       predictions_formulas <- gettextf(
-        "For a model with a spike prior distribution for parameter %1$s, predictions for 'N' future observation ('Future observations') with standard deviation %2$s ('SD') follow a normal distribution with mean parameter equal to the location of the prior distribution %3$s and standard deviation %2$s/%4$sN. For a model with a normal prior distribution for parameter %1$s, the predictive distribution is a normal distribution with mean equal to the mean of the posterior distribution and standard deviation based on the standard deviation of the posterior distribution (%3$s) and expected standard deviation of the new data (%2$s/%4$sN), %4$s( %3$s%5$s + (%2$s/%4$sN)%5$s ). In both cases, the mean of the predictions is equal to the mean parameter of the distribution for predictions.",
-        "\u03BC", "\u03C3", "\u03C3\u209A", "\u221A", "\u00B2"
+        "For a model with a spike prior distribution for parameter %1$s, predictions for 'N' future observation ('Future observations') with standard deviation %2$s ('SD') follow a normal distribution with mean parameter equal to the location of the prior distribution %3$s and standard deviation %2$s/%4$sN. For a model with a normal prior distribution for parameter %1$s, the predictive distribution is a normal distribution with mean equal to the mean of the posterior distribution and standard deviation based on the standard deviation of the posterior distribution (%3$s) and expected standard deviation of the new data (%2$s/%4$sN), %4$s( %3$s%5$s + (%2$s/%4$sN)%5$s ). In both cases, the %6$s prediction is equal to the mean parameter of the distribution for predictions.",
+        "\u03BC", "\u03C3", "\u03C3\u209A", "\u221A", "\u00B2", options[["predictionTableEstimate"]]
       )
       
     }
@@ -1886,5 +1985,13 @@ saveOptions <- function(options){
   return(gettextf(
     "<ul><li>'central' - a central interval (or quantile) that covers the central 'coverage'%% area of the distribution</li><li>''HPD' - a highest posterior density interval that covers 'coverage'%% area with the shortest range</li><li>'custom' - an interval defined by a ‘lower’ and ‘upper’ bound. It returns the posterior mass of the parameter falling inside the custom interval.</li>%s</ul>",
     ifelse(SI, gettext("<li>'support' - a support interval that covers a range of all parameter values which BF is higher than 'BF'</li>"),"")
+  ))
+}
+.estimateTextLS     <- function(estimate){
+  return( switch(
+    estimate,
+    "mean"   = gettext("Mean"),
+    "median" = gettext("Median"),
+    "mode"   = gettext("Mode")
   ))
 }

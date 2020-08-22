@@ -97,26 +97,7 @@ LSgaussianestimation   <- function(jaspResults, dataset, options, state = NULL){
 
 .estimatesGaussianLS               <- function(jaspResults, data, ready, options){
   
-  if(is.null(jaspResults[["estimatesContainer"]])){
-    estimatesContainer <- createJaspContainer("Model")
-    estimatesContainer$position <- 2
-    jaspResults[["estimatesContainer"]] <- estimatesContainer 
-  }else{
-    estimatesContainer <- jaspResults[["estimatesContainer"]]
-  }
-  
-  
-  if(options[["introText"]] && is.null(estimatesContainer[['introText']])){
-    
-    introText <- createJaspHtml()
-    introText$dependOn("introText")
-    introText$position <- 1
-    
-    introText[['text']] <- .explanatoryTextLS("estimates", NULL, "gauss_est")
-    
-    estimatesContainer[['introText']] <- introText    
-  }
-  
+  estimatesContainer <- .estimatesContainerLS(jaspResults, options, "gauss_est")
   
   if(is.null(estimatesContainer[['estimatesTable']])){
     

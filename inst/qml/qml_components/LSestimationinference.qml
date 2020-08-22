@@ -53,6 +53,36 @@ Section
 		}
 	}
 
+	Group
+	{
+		Layout.columnSpan:	2
+		title:	qsTr("Point estimate")
+
+		RadioButtonGroup
+		{
+			name:	"pointEstimate"
+			RadioButton
+			{
+				value:	"mean"
+				label:	qsTr("Mean")
+				checked: true
+			}
+
+			RadioButton
+			{
+				value:	"median"
+				label:	qsTr("Median")
+			}
+
+			RadioButton
+			{
+				name:	"mode"
+				label:	qsTr("Mode")
+			}
+		}
+	}
+
+
 	CheckBox
 	{
 		name: "plotsPrior"; label: qsTr("Prior distribution"); checked: false	;
@@ -64,6 +94,20 @@ Section
 			RadioButton {
 				value: "individual"
 				label: qsTr("Individual")
+
+				CheckBox
+				{
+					label:	qsTr("Point estimate")
+					name: "plotsPriorIndividualEstimate"
+					childrenOnSameRow: true
+
+					DropDown
+					{
+						name: "plotsPriorIndividualEstimateType"
+						label: ""
+						values: ["mean", "median", "mode"]
+					}
+				}
 
 				CheckBox
 				{
@@ -132,6 +176,20 @@ Section
 
 				CheckBox
 				{
+					label:	qsTr("Point estimate")
+					name: "plotsPosteriorIndividualEstimate"
+					childrenOnSameRow: true
+
+					DropDown
+					{
+						name: "plotsPosteriorIndividualEstimateType"
+						label: ""
+						values: ["mean", "median", "mode"]
+					}
+				}
+
+				CheckBox
+				{
 					name: "plotsPosteriorIndividualCI"
 					label: qsTr("CI")
 					id: plotsPosteriorIndividualCI
@@ -139,7 +197,6 @@ Section
 
 					DropDown
 					{
-						visible: plotsPosteriorIndividualCI.checked
 						name: "plotsPosteriorIndividualType"
 						label: ""
 						values: ["central", "HPD", "custom", "support"]

@@ -41,12 +41,11 @@ Section
 				value: "overlying"
 				label: qsTr("All")
 
-			
-				RadioButtonGroup
+				DropDown
 				{
-					name: "plotsIterativeCenter"
-					RadioButton{value: "mean"; label: qsTr("Mean")}
-					RadioButton{value: "median"; label: qsTr("Median")}
+					label: qsTr("Point estimate")
+					name: "plotsIterativeEstimateType"
+					values: ["mean", "median", "mode"]
 				}
 
 				Group

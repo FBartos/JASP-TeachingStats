@@ -115,6 +115,20 @@ Section
 
 				CheckBox
 				{
+					label:	qsTr("Point estimate")
+					name: "plotsPriorEstimate"
+					childrenOnSameRow: true
+
+					DropDown
+					{
+						name: "plotsPriorEstimateType"
+						label: ""
+						values: ["mean", "median", "mode"]
+					}
+				}
+
+				CheckBox
+				{
 					name: "plotsPriorCI"
 					label: qsTr("CI")
 					id: plotsPriorCI
@@ -200,6 +214,20 @@ Section
 
 				CheckBox
 				{
+					label:	qsTr("Point estimate")
+					name: "plotsPriorMarginalEstimate"
+					childrenOnSameRow: true
+
+					DropDown
+					{
+						name: "plotsPriorMarginalEstimateType"
+						label: ""
+						values: ["mean", "median", "mode"]
+					}
+				}
+
+				CheckBox
+				{
 					name: "plotsPriorMarginalCI"
 					label: qsTr("CI")
 					id: plotsPriorMarginalCI
@@ -266,11 +294,26 @@ Section
 		RadioButtonGroup
 		{
 			name: "plotsPredictionType"
+
 			RadioButton
 			{
 				value: "conditional"
 				label: qsTr("Conditional")
 				checked: true
+
+				CheckBox
+				{
+					label:	qsTr("Point estimate")
+					name: "plotsPredictionsEstimate"
+					childrenOnSameRow: true
+
+					DropDown
+					{
+						name: "plotsPredictionsEstimateType"
+						label: ""
+						values: ["mean", "median", "mode"]
+					}
+				}
 
 				CheckBox
 				{
@@ -281,7 +324,6 @@ Section
 
 					DropDown
 					{
-						visible: plotsPredictionCI.checked
 						name: "plotsPredictionTypeCI"
 						label: ""
 						values: ["central", "HPD", "custom"]
@@ -363,11 +405,25 @@ Section
 
 				CheckBox
 				{
+					label:	qsTr("Point estimate")
+					name: "plotsPredictionMarginalEstimate"
+					childrenOnSameRow: true
+
+					DropDown
+					{
+						name: "plotsPredictionMarginalEstimateType"
+						label: ""
+						values: ["mean", "median", "mode"]
+					}
+				}
+
+				CheckBox
+				{
 					name: "plotsPredictionMarginalCI"
 					label: qsTr("CI")
 					id: plotsPredictionMarginalCI
 					childrenOnSameRow: true
-
+				
 					DropDown
 					{
 						name: "plotsPredictionMarginalTypeCI"
@@ -460,6 +516,20 @@ Section
 
 				CheckBox
 				{
+					label:	qsTr("Point estimate")
+					name: "plotsPosteriorEstimate"
+					childrenOnSameRow: true
+
+					DropDown
+					{
+						name: "plotsPosteriorEstimateType"
+						label: ""
+						values: ["mean", "median", "mode"]
+					}
+				}
+
+				CheckBox
+				{
 					name: "plotsPosteriorCI"
 					label: qsTr("CI")
 					id: plotsPosteriorCI
@@ -467,7 +537,6 @@ Section
 
 					DropDown
 					{
-						visible: plotsPosteriorCI.checked
 						name: "plotsPosteriorTypeCI"
 						label: ""
 						values: ["central", "HPD", "custom","support"]
@@ -554,6 +623,20 @@ Section
 			{
 				value: "marginal";
 				label: qsTr("Marginal")
+
+				CheckBox
+				{
+					label:	qsTr("Point estimate")
+					name: "plotsPosteriorMarginalEstimate"
+					childrenOnSameRow: true
+
+					DropDown
+					{
+						name: "plotsPosteriorMarginalEstimateType"
+						label: ""
+						values: ["mean", "median", "mode"]
+					}
+				}
 
 				CheckBox
 				{

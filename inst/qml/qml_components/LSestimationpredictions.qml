@@ -43,6 +43,13 @@ Section
 		{
 			name: "predictionTable"
 			label: qsTr("Summary")
+
+			DropDown
+			{
+				label:	qsTr("Point estimate")
+				name: "predictionTableEstimate"
+				values: ["mean", "median", "mode"]
+			}
 		}
 
 		Group
@@ -81,6 +88,20 @@ Section
 
 						CheckBox
 						{
+							label:	qsTr("Point estimate")
+							name: "plotsPredictionEstimate"
+							childrenOnSameRow: true
+
+							DropDown
+							{
+								name: "plotsPredictionEstimateType"
+								label: ""
+								values: ["mean", "median", "mode"]
+							}
+						}
+						
+						CheckBox
+						{
 							name: "plotsPredictionCI"
 							label: qsTr("CI")
 							id: plotsPredictionCI
@@ -88,7 +109,6 @@ Section
 
 							DropDown
 							{
-								visible: plotsPredictionCI.checked
 								name: "plotsPredictionType"
 								label: ""
 								values: ["central", "HPD", "custom"]
