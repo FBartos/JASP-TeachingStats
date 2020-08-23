@@ -126,7 +126,7 @@
     
     summaryContainer[["summaryTable"]] <- summaryTable
     
-    if(.readyGaussianLS(options)){
+    if(.readyGaussianLS(options)[1]){
       
       summaryTable$addRows(list(observations = data$N,
                                 mean         = data$mean, 
@@ -146,6 +146,7 @@
       distribution = gettextf("spike at %s", prior[["parPoint_inp"]]),
       mean         = prior[["parPoint"]],
       median       = prior[["parPoint"]],
+      mode         = prior[["parPoint"]],
       lCI          = prior[["parPoint"]],
       uCI          = prior[["parPoint"]]
     )
@@ -160,6 +161,8 @@
         distribution = gettextf("normal (%s, %s)", prior[["parMu_inp"]], prior[["parSigma_inp"]]),
         mean         = prior[["parMu"]],
         median       = prior[["parMu"]],
+        mode         = prior[["parMu"]],
+        sd           = prior[["parSigma"]],
         lCI          = stats::qnorm(  (1-CI)/2, prior[["parMu"]], prior[["parSigma"]]),
         uCI          = stats::qnorm(1-(1-CI)/2, prior[["parMu"]], prior[["parSigma"]])
       )
@@ -173,6 +176,8 @@
         distribution = gettextf("normal (%.2f, %.2f)", est_mean, est_SD),
         mean         = est_mean,
         median       = est_mean,
+        mode         = est_mean,
+        sd           = est_SD,
         lCI          = stats::qnorm(  (1-CI)/2, est_mean, est_SD),
         uCI          = stats::qnorm(1-(1-CI)/2, est_mean, est_SD)
       )
@@ -243,6 +248,8 @@
       distribution = gettextf("normal (%s, %.2f)", prior[["parPoint_inp"]], data$SD/sqrt(N)),
       mean         = prior[["parPoint"]],
       median       = prior[["parPoint"]],
+      mode         = prior[["parPoint"]],
+      sd           = data$SD/sqrt(N),
       lCI          = stats::qnorm(  (1-CI)/2, prior[["parPoint"]], data$SD/sqrt(N)),
       uCI          = stats::qnorm(1-(1-CI)/2, prior[["parPoint"]], data$SD/sqrt(N))
     )
@@ -267,6 +274,8 @@
       distribution = gettextf("normal (%.2f, %.2f)", pred_mean, pred_SD),
       mean         = pred_mean,
       median       = pred_mean,
+      mode         = pred_mean,
+      sd           = pred_SD,
       lCI          = stats::qnorm(  (1-CI)/2, pred_mean, pred_SD),
       uCI          = stats::qnorm(1-(1-CI)/2, pred_mean, pred_SD)
     )
@@ -279,31 +288,37 @@
   if(is.null(data)){
     return(cbind.data.frame("lCI" = NA, "uCI" = NA))
   }
-  
+
   prior_mean <- prior[["parMu"]]
   prior_SD   <- prior[["parSigma"]]
   post_mean  <- .estimateGaussianMeanLS(prior, data)
   post_SD    <- .estimateGaussianSDLS(prior, data)
 
-  lSI <- stats::uniroot(
-    .normalSupportFunLS,
-    BF       = BF,
-    mu_prior = prior_mean,
-    sd_prior = prior_SD,
-    mu_post  = post_mean,
-    sd_post  = post_SD,
-    lower    = -666 * prior_SD,     # can't use -Inf :(
-    upper    = post_mean)$root
+  lSI <- tryCatch(
+    stats::uniroot(
+      .normalSupportFunLS,
+      BF       = BF,
+      mu_prior = prior_mean,
+      sd_prior = prior_SD,
+      mu_post  = post_mean,
+      sd_post  = post_SD,
+      lower    = -666 * prior_SD,     # can't use -Inf :(
+      upper    = post_mean)$root
+    , error = function(e)return(NA)
+  )
   
-  uSI <- stats::uniroot(
-    .normalSupportFunLS,
-    BF       = BF,
-    mu_prior = prior_mean,
-    sd_prior = prior_SD,
-    mu_post  = post_mean,
-    sd_post  = post_SD,
-    lower    = post_mean,
-    upper    = 666 * prior_SD)$root
+  uSI <- tryCatch(
+    stats::uniroot(
+      .normalSupportFunLS,
+      BF       = BF,
+      mu_prior = prior_mean,
+      sd_prior = prior_SD,
+      mu_post  = post_mean,
+      sd_post  = post_SD,
+      lower    = post_mean,
+      upper    = 666 * prior_SD)$root
+    , error = function(e)return(NA)
+  )
   
   return(cbind.data.frame("lCI" = lSI, "uCI" = uSI))
 }
@@ -517,8 +532,33 @@
   
   return(dat)
 }
+.dataPointEstimateGauss     <- function(data, prior, N, type = c("parameter", "prediction"), estimate = c("mean", "median", "mode"), sample_means = FALSE){
+  
+  if(type == "parameter"){
+    
+    temp_estimate <- .estimateGaussianLS(data, prior)
+    
+    if(prior[["type"]] == "spike"){
+      x <- temp_estimate[[estimate]]
+      y <- 1
+    }else if(prior[["type"]] == "normal"){
+      x <- temp_estimate[[estimate]]
+      y <- dnorm(x, temp_estimate[["mean"]], temp_estimate[["sd"]])
+    }
+    
+  }else if(type == "prediction"){
 
-.dataCentralGaussianLS      <- function(data, prior, coverage, N = NULL, type = c("parameter", "prediction")){
+    temp_estimate <- .predictGaussianLS(data, prior, NULL, N)
+    
+    x <- temp_estimate[[estimate]]
+    y <- dnorm(x, temp_estimate[["mean"]], if(sample_means) temp_estimate[["sd"]] /sqrt(N) else temp_estimate[["sd"]])
+  }
+  
+  dat <- data.frame(x = x, y = y, estimate = estimate, l = x)
+  return(dat)
+}
+
+.dataCentralGaussianLS      <- function(data, prior, coverage, N = NULL, type = c("parameter", "prediction"), sample_means = FALSE){
   
   if(type == "parameter"){
     
@@ -546,11 +586,18 @@
 
       if(prior[["type"]] == "spike"){
         
-        x <- stats::qnorm(c((1 - coverage)/2, 1 - (1 - coverage)/2), prior[["parPoint"]], data$SD)
+        temp_sd <- data$SD
+        if(sample_means)
+          temp_sd <- temp_sd / sqrt(N)
+        
+        x <- stats::qnorm(c((1 - coverage)/2, 1 - (1 - coverage)/2), prior[["parPoint"]], temp_sd)
         
       }else if(prior[["type"]] == "normal"){
         
-        x <- stats::qnorm(c((1 - coverage)/2, 1 - (1 - coverage)/2), prior[["parMu"]], sqrt( data$SD^2/N + prior[["parSigma"]]^2 ) )
+        temp_sd <- sqrt( data$SD^2/N + prior[["parSigma"]]^2 )
+        if(sample_means)
+          temp_sd <- temp_sd / sqrt(N)
+        x <- stats::qnorm(c((1 - coverage)/2, 1 - (1 - coverage)/2), prior[["parMu"]], temp_sd )
         
       }      
       
@@ -558,14 +605,21 @@
       
       if(prior[["type"]] == "spike"){
         
-        x <- stats::qnorm(c((1 - coverage)/2, 1 - (1 - coverage)/2), prior[["parPoint"]], data$SD/sqrt(N))
+        temp_sd <- data$SD/sqrt(N)
+        if(sample_means)
+          temp_sd <- temp_sd / sqrt(N)
+        
+        x <- stats::qnorm(c((1 - coverage)/2, 1 - (1 - coverage)/2), prior[["parPoint"]], temp_sd)
         
       }else if(prior[["type"]] == "normal"){
         
         post_mean <- .estimateGaussianMeanLS(prior, data)
         post_SD   <- .estimateGaussianSDLS(prior, data)
+        temp_sd   <- sqrt( data$SD^2/N + post_SD^2 )
+        if(sample_means)
+          temp_sd <- temp_sd / sqrt(N)
         
-        x <- stats::qnorm(c((1 - coverage)/2, 1 - (1 - coverage)/2), post_mean,  sqrt( data$SD^2/N + post_SD^2 ) )
+        x <- stats::qnorm(c((1 - coverage)/2, 1 - (1 - coverage)/2), post_mean,  temp_sd)
         
       }     
       
@@ -576,7 +630,7 @@
   dat       <- data.frame(x_start = x[1], x_end = x[2], g = "central", coverage = coverage)
   return(dat)
 }
-.dataCustomGaussianLS       <- function(data, prior, lCI, uCI, N = NULL, type = c("parameter", "prediction")){
+.dataCustomGaussianLS       <- function(data, prior, lCI, uCI, N = NULL, type = c("parameter", "prediction"), sample_means = FALSE){
   
   if(type == "parameter"){
     

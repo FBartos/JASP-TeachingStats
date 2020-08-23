@@ -18,7 +18,7 @@
 
 
 LSbinomialestimation   <- function(jaspResults, dataset, options, state = NULL){
-saveOptions(options)
+
   # a vector of two, first for data, second for hypotheses
   ready <- .readyBinomialLS(options)
 
@@ -405,7 +405,7 @@ saveOptions(options)
         }
 
         if(options[[ifelse(type == "Prior", "plotsPriorIndividualEstimate", "plotsPosteriorIndividualEstimate")]]){
-          dfPointEstimate <- .dataPointEstimate(temp_data, options[["priors"]][[i]], n = NULL, type = "parameter",
+          dfPointEstimate <- .dataPointEstimateBinomial(temp_data, options[["priors"]][[i]], n = NULL, type = "parameter",
                                                 estimate = options[[ifelse(type == "Prior", "plotsPriorIndividualEstimateType", "plotsPosteriorIndividualEstimateType")]])
         }else{
           dfPointEstimate <- NULL
@@ -1212,7 +1212,7 @@ saveOptions(options)
         }
         
         if(options[["plotsPredictionEstimate"]]){
-          dfPointEstimate <- .dataPointEstimate(data, options[["priors"]][[i]], options = options, 
+          dfPointEstimate <- .dataPointEstimateBinomial(data, options[["priors"]][[i]], options = options, 
                                                 type = "prediction", estimate = options[["plotsPredictionEstimateType"]],
                                                 prop = options[["predictionPlotProp"]])
         }else{

@@ -1128,7 +1128,7 @@ saveOptions <- function(options){
     introText$dependOn("introText")
     introText$position <- 1
     
-    introText[['text']] <- .explanatoryTextLS("estimates", options, "bin_est")
+    introText[['text']] <- .explanatoryTextLS("estimates", options, analysis)
     
     estimatesContainer[['introText']] <- introText    
   }
@@ -1626,9 +1626,9 @@ saveOptions <- function(options){
     )
     
     table_description <- gettextf(
-    "The 'Estimation Summary' table displays numerical summaries for the individual models. It is composed of the following columns:
+    "The 'Estimation Summary' table displays numerical summaries for the individual models. The displayed point estimate can be changed using the 'Point estimate' option. The table is composed of the following columns:
     <ul><li>'Model' - the specified model names</li><li>'Prior (%1$s)' - the specified prior distribution for parameter %1$s</li><li>'Prior %2$s' - the %3$s of the specified prior distribution</li><li>'Posterior (%1$s)' - the estimated posterior distribution for the parameter %1$s (i.e., the prior distribution updated with data)</li><li>'Posterior %2$s' - the %3$s of the posterior distribution</li></ul>", 
-    "\u03B8",
+    ifelse(binomial, "\u03B8", "\u03BC"),
     .estimateTextLS(options[["pointEstimate"]]),
     options[["pointEstimate"]]
     )
@@ -1699,7 +1699,7 @@ saveOptions <- function(options){
           ifelse(type == "Prior", gettext("prior distributions"), gettext("posterior distributions")),
           ifelse(binomial, "\u03B8", "\u03BC")),
         "individual"   = gettextf(
-          "The 'Individual' option shows %1$s for parameter %2$s individually in separate figures. It is possible to visualize different types of credible intervals ('CI'):%3$s",
+          "The 'Individual' option shows %1$s for parameter %2$s individually in separate figures. It is possible to visualize different types of point estimates ('Point estimate') and credible intervals ('CI'):%3$s",
           ifelse(type == "Prior", gettext("prior distributions"), gettext("posterior distributions")),
           ifelse(binomial, "\u03B8", "\u03BC"),
           .CIsTextLS(type == "Posterior"))
@@ -1721,7 +1721,7 @@ saveOptions <- function(options){
       specific_text <- switch(
         options[[ifelse(type == "Prior", "plotsPriorType", "plotsPosteriorType")]],
         "conditional" = gettextf(
-          "The 'Conditional' option shows all %1$s for parameter %2$s independently, as if they were considered as individual models (without the existence of other hypotheses). It is possible to visualize different types of credible intervals ('CI'):%3$s",
+          "The 'Conditional' option shows all %1$s for parameter %2$s independently, as if they were considered as individual models (without the existence of other hypotheses). It is possible to visualize different types of point estimates ('Point estimate') and credible intervals ('CI'):%3$s",
           ifelse(type == "Prior", gettext("prior distributions"), gettext("posterior distributions")),
           ifelse(binomial, "\u03B8", "\u03BC"),
           .CIsTextLS(type == "Posterior")),
@@ -1731,7 +1731,7 @@ saveOptions <- function(options){
           ifelse(binomial, "\u03B8", "\u03BC"),
           ifelse(type == "Prior", gettext("prior"), gettext("posterior"))),
         "marginal"    = gettextf(
-          "The 'Marginal' option collapses across all individual %1$s, weighting them by their %2$s probability.%3$s It is possible to visualize different types of credible intervals ('CI'):%4$s",
+          "The 'Marginal' option collapses across all individual %1$s, weighting them by their %2$s probability.%3$s It is possible to visualize different types of point estimates ('Point estimate') and credible intervals ('CI'):%4$s",
           ifelse(type == "Prior", gettext("prior distributions"), gettext("posterior distributions")),
           ifelse(type == "Prior", gettext("prior"), gettext("posterior")),
           ifelse(type == "Prior", gettext(""), gettext("The result represents the best estimate given all hypotheses and our prior beliefs about them together.")),
@@ -1782,7 +1782,7 @@ saveOptions <- function(options){
     
     specific_text <- switch(
       options[["plotsIterativeType"]],
-      "overlying"    = gettextf("The 'All' option shows either the mean ('Mean') or the median ('Median') for all specified models in one figure, allowing for easier comparison. It is possible to visualize different types of credible intervals ('CI'):%s", .CIsTextLS()),
+      "overlying"    = gettextf("The 'All' option shows either the mean ('Mean') or the median ('Median') for all specified models in one figure, allowing for easier comparison. It is possible to visualize different types of point estimates ('Point estimate') and credible intervals ('CI'):%s", .CIsTextLS()),
       "stacked"      = gettext("The 'Stacked' option shows all of the prior distribution updates for each model within one figure with a depth effect induced by plotting the additional distributions 'further' on the z-axis.")
     )
     
@@ -1875,7 +1875,7 @@ saveOptions <- function(options){
     }
     
     table_description <- gettextf(
-      "The 'Prediction Summary' table displays numerical summaries for the individual models. The table is composed of the following columns:
+      "The 'Prediction Summary' table displays numerical summaries for the individual models. The displayed point estimate can be changed using the 'Point estimate' option. The table is composed of the following columns:
     <ul><li>'Model' - the specified model names</li><li>'Posterior (%1$s)' - the estimated posterior distribution for parameter %1$s (used for prediction)</li>%2$s<li>'Posterior Mean' - the mean of the specified posterior distribution</li><li>'Prediction%3$s' - the predictive distribution for new data</li><li>'Prediction Mean' - the mean of predicted data</li></ul>", 
       ifelse(binomial, "\u03B8", "\u03BC"),
       ifelse(estimation, "", "<li>'P(H|data)' - the posterior probability of the hypothesis (after updating with the data)</li>"),
@@ -1900,7 +1900,7 @@ saveOptions <- function(options){
         options[["plotsPredictionType"]],
         "overlying"    = gettext("The 'All' option shows all posterior predictive distributions on top of each other, allowing for easier comparison with a common density scale on the y-axis."),
         "stacked"      = gettext("The 'Stacked' option shows all posterior predictive distributions in one figure with a depth effect induced by plotting the additional distributions 'further' on the z-axis."),
-        "individual"   = gettextf("The 'Individual' option shows posterior predictive distributions for each model individually in separate figures. It is possible to visualize different types of credible intervals ('CI'):%s",.CIsTextLS())
+        "individual"   = gettextf("The 'Individual' option shows posterior predictive distributions for each model individually in separate figures. It is possible to visualize different types of point estimates ('Point estimate') and credible intervals ('CI'):%s",.CIsTextLS())
       )
       
       out <- paste0(general_text, " ", specific_text)
@@ -1937,7 +1937,7 @@ saveOptions <- function(options){
           ifelse(binomial, "\u03B8", "\u03BC"),
           ifelse(type == "Prior", gettext("prior"), gettext("posterior"))),
         "marginal"    = gettextf(
-          "The 'Marginal' option collapses across all individual %1$s, weighting them by their %2$s probability.%3$s It is possible to visualize different types of credible intervals ('CI'):%4$s",
+          "The 'Marginal' option collapses across all individual %1$s, weighting them by their %2$s probability.%3$s It is possible to visualize different types of point estimates ('Point estimate') and credible intervals ('CI'):%4$s",
           ifelse(type == "Prior", gettext("prior predictive distributions"), gettext("posterior predictive distributions")),
           ifelse(type == "Prior", gettext("prior"), gettext("posterior")),
           ifelse(type == "Prior", gettext(""), gettext("The result represents the best estimate given all hypotheses and our prior beliefs about them together.")),
