@@ -304,12 +304,12 @@ Section
 				CheckBox
 				{
 					label:	qsTr("Point estimate")
-					name: "plotsPredictionsEstimate"
+					name: "plotsPredictionEstimate"
 					childrenOnSameRow: true
 
 					DropDown
 					{
-						name: "plotsPredictionsEstimateType"
+						name: "plotsPredictionEstimateType"
 						label: ""
 						values: ["mean", "median", "mode"]
 					}

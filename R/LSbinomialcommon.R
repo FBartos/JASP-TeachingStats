@@ -302,8 +302,8 @@
       mean         = prior[["parPoint"]] * options[["predictionN"]] / d,
       median       = qbinom(.5, options[["predictionN"]], prior[["parPoint"]]) / d,
       mode         = .modeBinomialLS(options[["predictionN"]], prior[["parPoint"]], prop = prop),
-      lCI          = qbinom(    (1 - options[["predictionTableCI"]])/2, options[["predictionN"]], prior[["parPoint"]]) / d,
-      uCI          = qbinom(1 - (1 - options[["predictionTableCI"]])/2, options[["predictionN"]], prior[["parPoint"]]) / d
+      lCI          = qbinom(0.025, options[["predictionN"]], prior[["parPoint"]]) / d,
+      uCI          = qbinom(0.975, options[["predictionN"]], prior[["parPoint"]]) / d
     )
     
     return(output)
@@ -327,8 +327,8 @@
       mean         = (prior[["parAlpha"]] + data$nSuccesses) * options[["predictionN"]] / (prior[["parAlpha"]] + data$nSuccesses + prior[["parBeta"]] + data$nFailures) / d,
       median       = .qbetabinomLS(.5, options[["predictionN"]], prior[["parAlpha"]] + data$nSuccesses, prior[["parBeta"]] + data$nFailures) / d,
       mode         = .modeBetaBinomLS(options[["predictionN"]], prior[["parAlpha"]] + data$nSuccesses, prior[["parBeta"]] + data$nFailures, prop = prop),
-      lCI          = .qbetabinomLS(    (1 - options[["predictionTableCI"]])/2, options[["predictionN"]], prior[["parAlpha"]] + data$nSuccesses, prior[["parBeta"]] + data$nFailures) / d,
-      uCI          = .qbetabinomLS(1 - (1 - options[["predictionTableCI"]])/2, options[["predictionN"]], prior[["parAlpha"]] + data$nSuccesses, prior[["parBeta"]] + data$nFailures) / d
+      lCI          = .qbetabinomLS(0.025, options[["predictionN"]], prior[["parAlpha"]] + data$nSuccesses, prior[["parBeta"]] + data$nFailures) / d,
+      uCI          = .qbetabinomLS(0.975, options[["predictionN"]], prior[["parAlpha"]] + data$nSuccesses, prior[["parBeta"]] + data$nFailures) / d
     )
     
     return(output)
@@ -707,9 +707,11 @@
 # plotting functions
 .dataLinesBinomialLS        <- function(data, prior){
   
-  x_seq   <- seq(.0005, .9995, .001)
-  y_post  <- round((pbeta(x_seq + .0005, prior[["parAlpha"]] + data$nSuccesses, prior[["parBeta"]] + data$nFailures) - pbeta(x_seq - .0005, prior[["parAlpha"]] + data$nSuccesses, prior[["parBeta"]] + data$nFailures))*length(x_seq),10)
-  y_prior <- round((pbeta(x_seq + .0005, prior[["parAlpha"]], prior[["parBeta"]]) - pbeta(x_seq - .0005, prior[["parAlpha"]], prior[["parBeta"]]))*length(x_seq),10)
+  x_seq   <- round(seq(.001, .999, .001), 5)
+  y_post  <- round((pbeta(x_seq + .001, prior[["parAlpha"]] + data$nSuccesses, prior[["parBeta"]] + data$nFailures) - pbeta(x_seq - .001, prior[["parAlpha"]] + data$nSuccesses, prior[["parBeta"]] + data$nFailures))*(1/(.001*2)),10)
+  y_prior <- round((pbeta(x_seq + .001, prior[["parAlpha"]], prior[["parBeta"]]) - 
+                      pbeta(x_seq - .001, prior[["parAlpha"]], prior[["parBeta"]]))
+                   *(1/(.001*2)),10)
   
   linesGroup <- c(y_post, y_prior)
   thetaGroup <- c(x_seq, x_seq)
@@ -861,7 +863,7 @@
   dat       <- data.frame(x = prior[["parPoint"]], y_start = 0, y_end = 1, g = "Prior = Posterior")
   return(dat)
 }
-.dataPointEstimateBinomial  <- function(data, prior, options, type = c("parameter", "prediction"), estimate = c("mean", "median", "mode"), prop = FALSE){
+.dataPointEstimateBinomial  <- function(data, prior, N, type = c("parameter", "prediction"), estimate = c("mean", "median", "mode"), prop = FALSE){
 
   if(type == "parameter"){
     l <- .estimateBinomialLS(data, prior)[[estimate]]
@@ -884,17 +886,17 @@
     }
     
   }else if(type == "prediction"){
-    n <- options[["predictionN"]]
+    options <- list(predictionN = N)
     l <- .predictBinomialLS(data, prior, options, prop)[[estimate]]
-    if(prop) d <- n else d <- 1
+    if(prop) d <- N else d <- 1
     
     if(prior[["type"]] == "spike"){
-      if(.is.wholenumber((n + 1)*prior[["parPoint"]]) && estimate == "mode"){
-        x <- c( (n + 1)*prior[["parPoint"]], (n + 1)*prior[["parPoint"]]-1) / d
+      if(.is.wholenumber((N + 1)*prior[["parPoint"]]) && estimate == "mode"){
+        x <- c( (N + 1)*prior[["parPoint"]], (N + 1)*prior[["parPoint"]]-1) / d
       }else{
         x <- .predictBinomialLS(data, prior, options, prop)[[estimate]]
       }
-      y <- dbinom(x * d, n, prior[["parPoint"]])
+      y <- dbinom(x * d, N, prior[["parPoint"]])
     }else if(prior[["type"]] == "beta"){
       
       x <- .predictBinomialLS(data, prior, options, prop)[[estimate]]
@@ -903,19 +905,159 @@
           x <- c(NA)
         }else if(prior[["parAlpha"]] + data$nSuccesses < 1 && prior[["parBeta"]] + data$nFailures < 1 &&
                  prior[["parAlpha"]] + data$nSuccesses == prior[["parBeta"]] + data$nFailures){
-          x <- c(0, n) / d
+          x <- c(0, N) / d
         }else{
-          x <- extraDistr::dbbinom(0:n, n, prior[["parAlpha"]] + data$nSuccesses, prior[["parBeta"]] + data$nFailures)
-          x <- c(0:n)[x == max(x)] / d
+          x <- extraDistr::dbbinom(0:N, N, prior[["parAlpha"]] + data$nSuccesses, prior[["parBeta"]] + data$nFailures)
+          x <- c(0:N)[x == max(x)] / d
         }
       }
-      y <- extraDistr::dbbinom(x * d, n, prior[["parAlpha"]] + data$nSuccesses, prior[["parBeta"]] + data$nFailures)
+      y <- extraDistr::dbbinom(x * d, N, prior[["parAlpha"]] + data$nSuccesses, prior[["parBeta"]] + data$nFailures)
     }
     
   }
   
   dat <- data.frame(x = x, y = y, estimate = estimate, l = l)
   return(dat)
+}
+.dataPointMarginalBinomial  <- function(data, options, all_lines, all_spikes, N, type = c("parameter", "prediction"), type2 = c("Prior", "Posterior"), estimate = c("mean", "median", "mode"), prop = FALSE){
+
+  if(is.null(data))
+    data <- list(
+      "nSuccesses" = 0,
+      "nFailures"  = 0
+    )
+
+  if(estimate == "median"){
+    if(type == "prediction" && !is.null(all_lines))all_lines$y <- all_lines$y * length(all_lines$y)
+    temp_df <- .marginalCentralBinomialLS(all_lines, all_spikes, coverage = 0)
+    if(type == "prediction" && !is.null(all_lines))all_lines$y <- all_lines$y / length(all_lines$y)
+    x <- temp_df$x_start
+    if(length(all_spikes) > 0){
+      spike_y <- sapply(all_spikes, function(s){
+        temp_y <- s$y[s$x == x]
+        if(length(temp_y) == 0){
+          return(NA)
+        }else{
+          return(temp_y)
+        }
+      })
+      if(length(na.omit(spike_y)) != 0){
+        spike_y <- max(spike_y, na.rm = T)
+        y       <- spike_y
+      }else{
+        spike_y <- NULL
+      }
+    }else{
+      spike_y <- NULL
+    }
+    if(is.null(spike_y)){
+      y <- all_lines$y[all_lines$x == x]
+    }
+    
+    return(data.frame(x = x, y = y, estimate = estimate, l = x, spike = !is.null(spike_y)))
+    
+  }else if(estimate == "mean"){
+    
+    temp_tests <- .testBinomialLS(data, options[["priors"]])
+    
+    if(type == "parameter"){
+      
+      temp_estimates <- sapply(options[["priors"]],function(prior).estimateBinomialLS(data, prior), simplify = F)
+      temp_estimates <- do.call(rbind.data.frame, temp_estimates)
+      
+      x <- sum(temp_tests[,tolower(type2)] * temp_estimates[,"mean"])
+
+      if(length(all_spikes) > 0){
+        spike_y <- sapply(all_spikes, function(s){
+          temp_y <- s$y[s$x == x]
+          if(length(temp_y) == 0){
+            return(NA)
+          }else{
+            return(temp_y)
+          }
+        })
+        if(length(na.omit(spike_y)) != 0){
+          spike_y <- max(spike_y, na.rm = T)
+          y       <- spike_y
+        }else{
+          spike_y <- NULL
+        }
+      }else{
+        spike_y <- NULL
+      }
+      if(is.null(spike_y)){
+        if(any(all_lines$x == x)){
+          y <- all_lines$y[all_lines$x == x]
+        }else{
+          y <- all_lines$y[which.max(all_lines$x > x)]/2 + all_lines$y[which.max(all_lines$x > x)-1]/2
+        }
+      }
+
+      if(length(y) == 0)y <- 0
+      return(data.frame(x = x, y = y, estimate = estimate, l = x, spike = !is.null(spike_y)))
+      
+    }else if(type == "prediction"){
+      
+      options[["predictionN"]] <- N
+      temp_predictions <- sapply(options[["priors"]],function(prior).predictBinomialLS(data, prior, options, prop), simplify = F)
+      temp_predictions <- do.call(rbind.data.frame, temp_predictions)
+      
+      x <- sum(temp_tests[,tolower(type2)] * temp_predictions[,"mean"])
+      
+      if(any(all_lines$x == x)){
+        y <- all_lines$y[all_lines$x == x]
+      }else{
+        y <- 0
+      }
+      
+      return(data.frame(x = x, y = y, estimate = estimate, l = x, spike = FALSE))
+    }
+    
+  }else if(estimate == "mode"){
+
+    if(prop) d <- N else d <- 1
+ 
+    if(length(all_spikes) > 0){
+      spike_y <- max(sapply(all_spikes, function(s)s$y))
+      y       <- spike_y
+      x       <- unique(sapply(all_spikes, function(s)s$x[s$y == spike_y]))
+      if(length(x) > 1){
+        l <-  paste0("{", paste(x, collapse = ", "), "}")
+      }else{
+        l <- x
+      }
+    }else{
+      spike_y <- NULL
+    }
+    if(is.null(spike_y)){
+      if(all(round(all_lines$y,10) == round(all_lines$y[1],10))){
+        y <- NA
+        x <- NA
+        if(prop){
+          l <- paste0("[", 0, ", ", 1, "]")
+        }else{
+          if(type == "prediction"){
+            l <- paste0("[", 0, ", ", N, "]")
+          }else{
+            l <- paste0("[", 0, ", ", 1, "]")
+          }
+        }
+      }else{
+        y <- all_lines$y[all_lines$y == max(all_lines$y)]
+        x <- all_lines$x[all_lines$y == max(all_lines$y)]
+        x[x == .0005] <- 0
+        x[x == .9995] <- 1
+        if(length(x) > 1){
+          l <- paste0("{", paste(x, collapse = ", "), "}")          
+        }else{
+          l <- x
+        }
+      }
+      
+    }
+   
+    return(data.frame(x = x, y = y, estimate = estimate, l = l, spike = !is.null(spike_y))) 
+  }
 }
 
 # all settings dependent on data input

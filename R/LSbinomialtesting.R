@@ -16,7 +16,7 @@
 #
 
 LSbinomialtesting   <- function(jaspResults, dataset, options, state = NULL){
-saveOptions(options)
+
   # a vector of two, first for data, second for hypotheses
   ready <- .readyBinomialLS(options)
 
@@ -191,11 +191,14 @@ saveOptions(options)
     
     plotsSimple$position <- 2
     plotsSimple$dependOn(c(.BinomialLS_data_dependencies,
-                           ifelse(type == "Prior", "plotsPriorJointType",        "plotsPosteriorJointType"),
-                           ifelse(type == "Prior", "plotsPriorMarginalCI",       "plotsPosteriorMarginalCI"),
-                           ifelse(type == "Prior", "plotsPriorMarginalCoverage", "plotsPosteriorMarginalCoverage"),
-                           ifelse(type == "Prior", "plotsPriorMarginalLower",    "plotsPosteriorMarginalLower"),
-                           ifelse(type == "Prior", "plotsPriorMarginalUpper",    "plotsPosteriorMarginalUpper"),
+                           ifelse(type == "Prior", "plotsPriorJointType",            "plotsPosteriorJointType"),
+                           ifelse(type == "Prior", "plotsPriorMarginalCI",           "plotsPosteriorMarginalCI"),
+                           ifelse(type == "Prior", "plotsPriorMarginalType",         "plotsPosteriorMarginalType"),
+                           ifelse(type == "Prior", "plotsPriorMarginalCoverage",     "plotsPosteriorMarginalCoverage"),
+                           ifelse(type == "Prior", "plotsPriorMarginalLower",        "plotsPosteriorMarginalLower"),
+                           ifelse(type == "Prior", "plotsPriorMarginalUpper",        "plotsPosteriorMarginalUpper"),
+                           ifelse(type == "Prior", "plotsPriorMarginalEstimate",     "plotsPosteriorMarginalEstimate"),
+                           ifelse(type == "Prior", "plotsPriorMarginalEstimateType", "plotsPosteriorMarginalEstimateType"),
                            if(type == "Posterior") "plotsPosteriorObserved",
                            "colorPalette", "scaleSpikes"))
     
@@ -231,7 +234,7 @@ saveOptions(options)
         dfLinesPP   <- dfLinesPP[dfLinesPP$g == type,]
         dfLinesPP$y <- exp(log(dfLinesPP$y)+log(temp_results[i, tolower(type)]))
         dfLinesPP$g <- options[["priors"]][[i]]$name
-        
+
         all_lines   <- c(all_lines, list(dfLinesPP))
         legend      <- rbind(legend, c(options[["priors"]][[i]]$type, options[["priors"]][[i]]$name))
         
@@ -262,7 +265,7 @@ saveOptions(options)
     }else if(options[[ifelse(type == "Prior", "plotsPriorType", "plotsPosteriorType")]] == "marginal"){
       
       all_lines_new <- c()
-      
+      all_spikes    <- list()
       if(length(all_lines) > 0){
         
         for(i in 1:length(all_lines)){
@@ -283,33 +286,32 @@ saveOptions(options)
         }
       }
       
-      if(options[[ifelse(type == "Prior", "plotsPriorMarginalCI", "plotsPosteriorMarginalCI")]]){
-        
-        all_spikes   <- list()
-        if(type == "Prior"){
-          for(i in 1:length(options[["priors"]])){
-            if(options[["priors"]][[i]]$type == "spike"){
-              all_spikes <- c(
-                all_spikes, 
-                list(data.frame(y = options[["priors"]][[i]]$PH, x = options[["priors"]][[i]]$parPoint, g = "__marginal"))
-              )
-            }
+      if(type == "Prior"){
+        for(i in 1:length(options[["priors"]])){
+          if(options[["priors"]][[i]]$type == "spike"){
+            all_spikes <- c(
+              all_spikes, 
+              list(data.frame(y = options[["priors"]][[i]]$PH, x = options[["priors"]][[i]]$parPoint, g = "__marginal"))
+            )
           }
-        }else{
-          temp_results <- .testBinomialLS(data, options[["priors"]])
-          for(i in 1:length(options[["priors"]])){
-            if(options[["priors"]][[i]]$type == "spike"){
-              all_spikes <- c(
-                all_spikes, 
-                list(data.frame(y = temp_results$posterior[i], x = options[["priors"]][[i]]$parPoint, g = "__marginal"))
-              )
-            }
+        }
+      }else{
+        temp_results <- .testBinomialLS(data, options[["priors"]])
+        for(i in 1:length(options[["priors"]])){
+          if(options[["priors"]][[i]]$type == "spike"){
+            all_spikes <- c(
+              all_spikes, 
+              list(data.frame(y = temp_results$posterior[i], x = options[["priors"]][[i]]$parPoint, g = "__marginal"))
+            )
           }
-          
         }
         
+      }
+      
+      if(options[[ifelse(type == "Prior", "plotsPriorMarginalCI", "plotsPosteriorMarginalCI")]]){
+        
         if(options[[ifelse(type == "Prior", "plotsPriorMarginalType", "plotsPosteriorMarginalType")]] == "central"){
-          
+        
           dfCI <- .marginalCentralBinomialLS(all_lines_new[[1]], all_spikes, 
                                              options[[ifelse(type == "Prior", "plotsPriorMarginalCoverage", "plotsPosteriorMarginalCoverage")]])
           
@@ -334,7 +336,16 @@ saveOptions(options)
         dfCI <- NULL
       }
       
-      p <- .plotOverlyingLS(all_lines_new, all_arrows, dfPoints, CI = dfCI, xName = xName, no_legend = T)
+      if(options[[ifelse(type == "Prior", "plotsPriorMarginalEstimate", "plotsPosteriorMarginalEstimate")]]){
+
+        dfPointEstimate <- .dataPointMarginalBinomial(if(type == "Prior") NULL else data, options, all_lines_new[[1]], all_spikes, N = NULL,
+                                                      type = "parameter", type2 = type,
+                                                      estimate = options[[ifelse(type == "Prior", "plotsPriorMarginalEstimateType", "plotsPosteriorMarginalEstimateType")]])
+      }else{
+        dfPointEstimate <- NULL
+      }
+        
+      p <- .plotOverlyingLS(all_lines_new, all_arrows, dfPoints, dfPointEstimate, CI = dfCI, xName = xName, no_legend = T)
       
     }
     
@@ -353,6 +364,9 @@ saveOptions(options)
     
     plotsIndividual$position <- 2
     plotsIndividual$dependOn(c(.BinomialLS_data_dependencies,
+                               ifelse(type == "Prior", "plotsPriorEstimate",     "plotsPosteriorEstimate"),
+                               ifelse(type == "Prior", "plotsPriorEstimateType", "plotsPosteriorEstimateType"),
+                               ifelse(type == "Prior", "plotsPriorCI",           "plotsPosteriorCI"),
                                ifelse(type == "Prior", "plotsPriorTypeCI",       "plotsPosteriorTypeCI"),
                                ifelse(type == "Prior", "plotsPriorCoverage",     "plotsPosteriorCoverage"),
                                ifelse(type == "Prior", "plotsPriorLower",        "plotsPosteriorLower"),
@@ -460,7 +474,15 @@ saveOptions(options)
           }
           
         }
-        p <- .plotIndividualLS(dfLinesPP, dfArrowPP, dfCI, dfCILinesPP, dfPoints, c(0,1), xName, nRound = 3)
+
+        if(options[[ifelse(type == "Prior", "plotsPriorEstimate", "plotsPosteriorEstimate")]]){
+          dfPointEstimate <- .dataPointEstimateBinomial(temp_data, options[["priors"]][[i]], N = NULL, type = "parameter",
+                                                        estimate = options[[ifelse(type == "Prior", "plotsPriorEstimateType", "plotsPosteriorEstimateType")]])
+        }else{
+          dfPointEstimate <- NULL
+        }
+        
+        p <- .plotIndividualLS(dfLinesPP, dfArrowPP, dfPointEstimate, dfCI, dfCILinesPP, dfPoints, c(0,1), xName, nRound = 3)
         temp_plot$plotObject <- p
       }
       
@@ -479,13 +501,16 @@ saveOptions(options)
     
     plotsPredictions$position <- 2
     plotsPredictions$dependOn(c(.BinomialLS_data_dependencies,
-                                ifelse(type == "Prior", "plotsPredictionMarginalTypeCI",     "plotsPredictionPostMarginalTypeCI"),
-                                ifelse(type == "Prior", "plotsPredictionMarginalCoverage",   "plotsPredictionPostMarginalCoverage"),
-                                ifelse(type == "Prior", "plotsPredictionMarginalLower",      "plotsPredictionPostMarginalLower"),
-                                ifelse(type == "Prior", "plotsPredictionMarginalUpper",      "plotsPredictionPostMarginalUpper"),
-                                ifelse(type == "Prior", "plotsPredictionJointType",          "plotsPredictionPostJointType"),
-                                ifelse(type == "Prior", "plotsPredictionsObserved",          "predictionPostPlotProp"),
-                                ifelse(type == "Prior", "colorPalette",                      "colorPalettePrediction")
+                                ifelse(type == "Prior", "plotsPredictionMarginalEstimate",     "plotsPredictionPostMarginalEstimate"),
+                                ifelse(type == "Prior", "plotsPredictionMarginalEstimateType", "plotsPredictionPostMarginalEstimateType"),
+                                ifelse(type == "Prior", "plotsPredictionMarginalCI",           "plotsPredictionPostMarginalCI"),
+                                ifelse(type == "Prior", "plotsPredictionMarginalTypeCI",       "plotsPredictionPostMarginalTypeCI"),
+                                ifelse(type == "Prior", "plotsPredictionMarginalCoverage",     "plotsPredictionPostMarginalCoverage"),
+                                ifelse(type == "Prior", "plotsPredictionMarginalLower",        "plotsPredictionPostMarginalLower"),
+                                ifelse(type == "Prior", "plotsPredictionMarginalUpper",        "plotsPredictionPostMarginalUpper"),
+                                ifelse(type == "Prior", "plotsPredictionJointType",            "plotsPredictionPostJointType"),
+                                ifelse(type == "Prior", "plotsPredictionsObserved",            "predictionPostPlotProp"),
+                                ifelse(type == "Prior", "colorPalette",                        "colorPalettePrediction")
     ))
     
     containerPlots[[paste0("plotsPredictions",type)]] <- plotsPredictions
@@ -661,8 +686,17 @@ saveOptions(options)
           xRange <- c(0, predictionN)
         }
         
+        if(options[[ifelse(type == "Prior", "plotsPredictionMarginalEstimate", "plotsPredictionPostMarginalEstimate")]]){
+
+          dfPointEstimate <- .dataPointMarginalBinomial(if(type == "Prior") NULL else data, options, all_lines_new, NULL, N = predictionN,
+                                                        type = "prediction", type2 = type,
+                                                        estimate = options[[ifelse(type == "Prior", "plotsPredictionMarginalEstimateType", "plotsPredictionPostMarginalEstimateType")]],
+                                                        prop = if(type == "Posterior") options[["predictionPostPlotProp"]] else FALSE)
+        }else{
+          dfPointEstimate <- NULL
+        }
         
-        p <- .plotPredictionLS(all_lines_new, dfCI, xRange = xRange, xName = xName, yName = yName, nRound = nRound, xBlacked = xBlacked,
+        p <- .plotPredictionLS(all_lines_new, dfPointEstimate, dfCI, xRange = xRange, xName = xName, yName = yName, nRound = nRound, xBlacked = xBlacked,
                                proportions = proportions, predictionN = predictionN)
         
       }else{
@@ -685,13 +719,15 @@ saveOptions(options)
     
     plotsPredictionsIndividual$position <- 2
     plotsPredictionsIndividual$dependOn(c(.BinomialLS_data_dependencies,
-                                          ifelse(type == "Prior", "plotsPredictionCI",      "plotsPredictionPostCI"),
-                                          ifelse(type == "Prior", "plotsPredictionTypeCI",  "plotsPredictionPostTypeCI"),
-                                          ifelse(type == "Prior", "plotsPredictionCoverage","plotsPredictionPostCoverage"),
-                                          ifelse(type == "Prior", "plotsPredictionLower",   "plotsPredictionPostLower"),
-                                          ifelse(type == "Prior", "plotsPredictionUpper",   "plotsPredictionPostUpper"),
-                                          ifelse(type == "Prior", "colorPalette",           "colorPalettePrediction"),
-                                          ifelse(type == "Prior", "",                       "predictionPostPlotProp")
+                                          ifelse(type == "Prior", "plotsPredictionEstimate",     "plotsPredictionPostEstimate"),
+                                          ifelse(type == "Prior", "plotsPredictionEstimateType", "plotsPredictionPostEstimateType"),
+                                          ifelse(type == "Prior", "plotsPredictionCI",           "plotsPredictionPostCI"),
+                                          ifelse(type == "Prior", "plotsPredictionTypeCI",       "plotsPredictionPostTypeCI"),
+                                          ifelse(type == "Prior", "plotsPredictionCoverage",     "plotsPredictionPostCoverage"),
+                                          ifelse(type == "Prior", "plotsPredictionLower",        "plotsPredictionPostLower"),
+                                          ifelse(type == "Prior", "plotsPredictionUpper",        "plotsPredictionPostUpper"),
+                                          ifelse(type == "Prior", "colorPalette",                "colorPalettePrediction"),
+                                          ifelse(type == "Prior", "plotsPredictionsObserved",    "predictionPostPlotProp")
     ))
     
     
@@ -817,8 +853,17 @@ saveOptions(options)
         }else{
           nRound <- 0
         }
+
+        if(options[[ifelse(type == "Prior", "plotsPredictionEstimate", "plotsPredictionPostEstimate")]]){
+          dfPointEstimate <- .dataPointEstimateBinomial(temp_data, options[["priors"]][[i]], N = predictionN, type = "prediction",
+                                                        estimate = options[[ifelse(type == "Prior", "plotsPredictionEstimateType", "plotsPredictionPostEstimateType")]],
+                                                        prop = ifelse(type == "Prior", FALSE, options[["predictionPostPlotProp"]])
+          )
+        }else{
+          dfPointEstimate <- NULL
+        }
         
-        p <- .plotPredictionLS(dfHist, dfCI, xRange, xName, yName, nRound = nRound, xBlacked = xBlacked,
+        p <- .plotPredictionLS(dfHist, dfPointEstimate, dfCI, xRange, xName, yName, nRound = nRound, xBlacked = xBlacked,
                                proportions = proportions, predictionN = predictionN)
         temp_plot$plotObject <- p
       }
@@ -1345,14 +1390,16 @@ saveOptions(options)
     predictionsTable <- createJaspTable()
     
     predictionsTable$position <- 2
-    predictionsTable$dependOn(c(.BinomialLS_data_dependencies, "predictionN"))
+    predictionsTable$dependOn(c(.BinomialLS_data_dependencies, "predictionN", "predictionTableEstimate"))
     
-    predictionsTable$addColumnInfo(name = "hypothesis",     title = gettext("Model"),                     type = "string")
-    predictionsTable$addColumnInfo(name = "posterior",      title = gettextf("Posterior (%s)", "\u03B8"), type = "string")
-    predictionsTable$addColumnInfo(name = "prob",           title = gettext("P(H|data)"),                 type = "number")
-    predictionsTable$addColumnInfo(name = "posteriorMean",  title = gettext("Posterior Mean"),            type = "number")
-    predictionsTable$addColumnInfo(name = "predictive",     title = gettext("Prediction (Successes)"),    type = "string")
-    predictionsTable$addColumnInfo(name = "predictiveMean", title = gettext("Prediction Mean"),           type = "number")
+    estimateText <- .estimateTextLS(options[["predictionTableEstimate"]])
+    
+    predictionsTable$addColumnInfo(name = "hypothesis",    title = gettext("Model"),                         type = "string")
+    predictionsTable$addColumnInfo(name = "posterior",     title = gettextf("Posterior (%s)", "\u03B8"),     type = "string")
+    predictionsTable$addColumnInfo(name = "prob",          title = gettext("P(H|data)"),                     type = "number")
+    predictionsTable$addColumnInfo(name = "posteriorEst",  title = gettextf("Posterior %s", estimateText),   type = "number")
+    predictionsTable$addColumnInfo(name = "predictive",    title = gettextf("Prediction (Successes)"),       type = "string")
+    predictionsTable$addColumnInfo(name = "predictiveEst", title = gettextf("Prediction %s", estimateText),  type = "number")
     
     predictionsTable$setExpectedSize(length(options[["priors"]]))
     
@@ -1366,29 +1413,29 @@ saveOptions(options)
       
       temp_tests <- .testBinomialLS(data, options[["priors"]])
       temp_means <- NULL
+      marg_est   <- .predictionTableEstimate(data, options, options[["predictionTableEstimate"]])
       # add rows for each hypothesis
       for(i in 1:length(options[["priors"]])){
         
         temp_results    <- .estimateBinomialLS(data, options[["priors"]][[i]])
         temp_prediction <- .predictBinomialLS(data, options[["priors"]][[i]], options)
-        temp_means      <- rbind(temp_means, c(temp_results$mean * temp_tests[i, "posterior"], temp_prediction$mean * temp_tests[i, "posterior"]))
         
         temp_row <- list(
-          hypothesis      = options[["priors"]][[i]]$name,
-          posterior       = temp_results$distribution,
+          hypothesis      = options[["priors"]][[i]][["name"]],
+          posterior       = temp_results[["distribution"]],
           prob            = temp_tests[i, "posterior"],
-          posteriorMean   = temp_results$mean,
-          predictive      = temp_prediction$distribution,
-          predictiveMean  = temp_prediction$mean
+          posteriorEst    = temp_results[[options[["predictionTableEstimate"]]]],
+          predictive      = temp_prediction[["distribution"]],
+          predictiveEst   = temp_prediction[[options[["predictionTableEstimate"]]]]
         )
         
         predictionsTable$addRows(temp_row)
       }
       
       predictionsTable$addRows(list(
-        hypothesis      = "Marginal",
-        posteriorMean   = sum(temp_means[,1]),
-        predictiveMean  = sum(temp_means[,2])
+        hypothesis     = "Marginal",
+        posteriorEst   = marg_est[["posteriorEst"]],
+        predictiveEst  = marg_est[["predictionEst"]]
       ))
       
       # add footnote clarifying what dataset was used
@@ -1403,4 +1450,114 @@ saveOptions(options)
   }
   
   return()  
+}
+.predictionTableEstimate <- function(data, options, estimate){
+
+  ### posterior estimate
+  all_lines    <- c()
+  all_arrows   <- c()
+  legend       <- NULL
+  temp_results <- .testBinomialLS(data, options[["priors"]])
+  for(i in 1:length(options[["priors"]])){
+    
+    if(options[["priors"]][[i]]$type == "spike"){
+      
+      dfArrowPP       <- .dataArrowBinomialLS(options[["priors"]][[i]])
+      dfArrowPP$y_end <- exp(log(dfArrowPP$y_end)+log(temp_results[i, "posterior"]))
+      dfArrowPP$g     <- options[["priors"]][[i]]$name
+      
+      all_arrows      <- c(all_arrows, list(dfArrowPP))
+      legend          <- rbind(legend, c(options[["priors"]][[i]]$type, options[["priors"]][[i]]$name))
+      
+    }else if(options[["priors"]][[i]]$type == "beta"){
+     
+      dfLinesPP   <- .dataLinesBinomialLS(data, options[["priors"]][[i]])
+      dfLinesPP   <- dfLinesPP[dfLinesPP$g == "Posterior",]
+      dfLinesPP$y <- exp(log(dfLinesPP$y)+log(temp_results[i, "posterior"]))
+      dfLinesPP$g <- options[["priors"]][[i]]$name
+      
+      all_lines   <- c(all_lines, list(dfLinesPP))
+      legend      <- rbind(legend, c(options[["priors"]][[i]]$type, options[["priors"]][[i]]$name))
+      
+    }
+  }
+
+  all_lines_new <- c()
+  all_spikes    <- list()
+  if(length(all_lines) > 0){
+    
+    for(i in 1:length(all_lines)){
+      
+      if(i == 1){
+        all_lines_new[[1]] <- all_lines[[i]]
+      }else{
+        all_lines_new[[1]]$y <- all_lines_new[[1]]$y + all_lines[[i]]$y
+      }
+      
+    }
+    all_lines_new[[1]]$g <- "__marginal"
+  }
+  
+  if(length(all_arrows) > 0){
+    for(i in 1:length(all_arrows)){
+      all_arrows[[i]]$g <- "__marginal"
+    }
+  }
+  
+  temp_results <- .testBinomialLS(data, options[["priors"]])
+  for(i in 1:length(options[["priors"]])){
+    if(options[["priors"]][[i]]$type == "spike"){
+      all_spikes <- c(
+        all_spikes, 
+        list(data.frame(y = temp_results$posterior[i], x = options[["priors"]][[i]]$parPoint, g = "__marginal"))
+      )
+    }
+  }
+  
+  posteriorEst <- .dataPointMarginalBinomial(data, options, all_lines_new[[1]], all_spikes, N = options[["predictionN"]],
+                                             type = "parameter", type2 = "Posterior",
+                                             estimate = estimate)$x
+  
+  ### prediction estimate
+  temp_results <- .testBinomialLS(data, options[["priors"]])
+  all_lines  <- c()
+  legend     <- NULL
+  
+  for(i in 1:length(options[["priors"]])){
+    
+    dfHist   <- .dataHistBinomialLS2(data, options[["priors"]][[i]], options[["predictionN"]])
+    dfHist$g <- options[["priors"]][[i]]$name
+    dfHist$y <- dfHist$y*temp_results[i,"posterior"]
+
+    
+    # it's not beta, but I'm lazzy to rewrite a function I wanna use
+    legend   <- rbind(legend, c("beta", options[["priors"]][[i]]$name))
+    all_lines<- c(all_lines, list(dfHist))
+  }
+  
+  if(length(all_lines) > 0){
+    
+    for(i in 1:length(all_lines)){
+      
+      if(i == 1){
+        all_lines_new <- all_lines[[i]]
+      }else{
+        all_lines_new$y <- all_lines_new$y + all_lines[[i]]$y
+      }
+      
+    }
+    all_lines_new$g <- "__marginal"
+  }
+  
+  all_lines_new   <- all_lines_new[seq(1,nrow(all_lines_new),2),]
+  all_lines_new$x <- all_lines_new$x + .5
+    
+  predictionEst <- .dataPointMarginalBinomial(data, options, all_lines_new, NULL, N = options[["predictionN"]],
+                                                type = "prediction", type2 = "Posterior",
+                                                estimate = estimate)$x
+
+  return(list(
+    posteriorEst  = posteriorEst,
+    predictionEst = predictionEst
+  ))  
 }

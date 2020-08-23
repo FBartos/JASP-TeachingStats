@@ -224,7 +224,7 @@ saveOptions <- function(options){
   
   return(plot)
 }
-.plotOverlyingLS       <- function(all_lines, all_arrows, dfPoints = NULL, CI = NULL, xName = NULL, yName = NULL,
+.plotOverlyingLS       <- function(all_lines, all_arrows, dfPoints = NULL, point_estimate = NULL, CI = NULL, xName = NULL, yName = NULL,
                                    xRange = c(0,1), palette = "colorblind", no_legend = FALSE, nRound = 3, discrete = FALSE,
                                    proportions = FALSE){
   
@@ -242,9 +242,15 @@ saveOptions <- function(options){
   y_max <- .getYMax(all_lines, all_arrows)
   
   # set the CI text
-  if(!is.null(CI)){
+  # set the CI text
+  if(!is.null(CI) || !is.null(point_estimate)){
     # text for the interval
-    temp_label <- .CI_labelLS(CI, nRound)
+    temp_label <- .CI_labelLS(CI, nRound, point_estimate)
+  }else{
+    temp_label <- NULL
+  }
+  
+  if(!is.null(CI)){
     CI         <- cbind.data.frame(CI, "y" = y_max * 1.05)
   }
   
@@ -264,6 +270,12 @@ saveOptions <- function(options){
     
     all_arrows_scaled        <- all_arrows
     all_arrows_scaled$y_end  <- all_arrows_scaled$y_end * .scalingSpikes(all_lines, all_arrows)
+
+    if(!is.null(point_estimate)){
+      if(point_estimate$spike[1]){
+        point_estimate$y <- point_estimate$y  * .scalingSpikes(all_lines, all_arrows)
+      }
+    }
     
     g <- g + ggplot2::geom_segment(
       data        = all_arrows_scaled,
@@ -276,6 +288,7 @@ saveOptions <- function(options){
       mapping = mappingArrows,
       size    = 1)
   }
+
   if(!is.null(all_lines)){
     g <- g + ggplot2::geom_line(data = all_lines, mapping = mappingLines, size = 1,)
   }
@@ -286,16 +299,24 @@ saveOptions <- function(options){
                                  stroke = 1.25, fill = "grey")
   }
   
+  if(!is.null(point_estimate)){
+    if(!anyNA(point_estimate$x)){
+      g <- g + ggplot2::geom_point(data = point_estimate, mapping = mappingPoint, show.legend = FALSE,
+                                   inherit.aes = FALSE, size = 4, shape = 21, 
+                                   stroke = 1.25, fill = "grey") 
+    }
+  }
+  
   if(no_legend == TRUE){
     g <- g + ggplot2::scale_colour_manual(values = "black")
   }else{
     g <- g + JASPgraphs::scale_JASPcolor_discrete(palette)
   }
-  
+
   # axes
   g <- g + .plotXAxis(xName, xRange, discrete)
-  g <- g + .plotYAxis(all_lines, all_arrows, CI)
-  
+  g <- g + .plotYAxis(all_lines, all_arrows, if(!is.null(CI) || !is.null(point_estimate)) "notNull" else NULL)
+
   # legend
   if(!is.null(all_lines)){
     xr   <- range(all_lines$x)
@@ -319,7 +340,9 @@ saveOptions <- function(options){
           arrow   = ggplot2::arrow(angle = 90, length = ggplot2::unit(0.25, "cm")),
           color   = "black")
     }
-    
+  }
+  
+  if(!is.null(CI) || !is.null(point_estimate)){
     label_y    <- if(length(temp_label) == 1) 1.10 else 1.25 - .07 * c(1:length(temp_label)) 
     for(i in 1:length(temp_label)){
       
