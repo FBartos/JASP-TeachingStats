@@ -21,7 +21,6 @@ import JASP.Controls 1.0
 import JASP.Widgets 1.0
 import JASP.Theme 1.0
 
-
 Form {
 	columns: 1
 	IntegerField 
@@ -40,6 +39,8 @@ Form {
 		fieldWidth: 50
 		value: "1,1,1,1"
 		
+		
+		
 	}
 
 	IntegerField  
@@ -54,7 +55,7 @@ Form {
 	{ 
 		name: "p"; 
 		label: qsTr("For every play, the probability that each player wins the point (comma delimited)"); 
-		fieldWidth: 50
+		fieldWidth: 150
 		value: "0.25,0.25,0.25,0.25"
 		  
 	}
