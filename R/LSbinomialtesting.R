@@ -464,7 +464,7 @@ LSbinomialtesting   <- function(jaspResults, dataset, options, state = NULL){
   return()
 }
 .plotsPredictionsBinomial2LS  <- function(jaspResults, data, ready, options, type = c("Prior", "Posterior")){
-  
+
   containerPlots <- .containerPrediction2PlotsLS(jaspResults, options, "bin_test", type)
   
   if (is.null(containerPlots[[paste0("plotsPredictions",type)]])){

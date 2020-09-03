@@ -979,7 +979,7 @@ saveOptions <- function(options){
     if (CI$g[1] == "HPD"){
       temp_label <- paste(c(temp_cov,"['HPD']:",temp_int), collapse = "")
     } else if (CI$g[1] == "custom"){
-      temp_label  <- paste(c("P({",format(round(CI$x_start, nRound), nsmall = nRound),"<=",if (CI$parameter == "theta") "theta" else if (parameter == "mu") "mu","}<=",
+      temp_label  <- paste(c("P({",format(round(CI$x_start, nRound), nsmall = nRound),"<=",if (CI$parameter == "theta") "theta" else if (CI$parameter == "mu") "mu","}<=",
                              (format(round(CI$x_end, nRound), nsmall = nRound)),")","=='",round(CI$coverage[1]*100)," %'"), collapse = "")
     } else if (CI$g[1] == "support"){
       temp_label <- paste(c("SI['[BF = ",CI$BF[1],"]']:",temp_int), collapse = "")
@@ -1905,10 +1905,22 @@ saveOptions <- function(options){
     
     table_description <- gettextf(
       "The 'Prediction Summary' table displays numerical summaries for the individual models. The displayed point estimate can be changed using the 'Point estimate' option. The table is composed of the following columns:
-    <ul><li>'Model' - the specified model names</li><li>'Posterior (%1$s)' - the estimated posterior distribution for parameter %1$s (used for prediction)</li>%2$s<li>'Posterior Mean' - the mean of the specified posterior distribution</li><li>'Prediction%3$s' - the predictive distribution for new data</li><li>'Prediction Mean' - the mean of predicted data</li></ul>", 
+    <ul><li>'Model' - the specified model names</li><li>'Posterior (%1$s)' - the estimated posterior distribution for parameter %1$s (used for prediction)</li>%2$s<li>'Posterior %4$s' - the %5$s of the specified posterior distribution</li><li>'Prediction%3$s' - the predictive distribution for new data</li><li>'Prediction %4$s' - the %5$s of predicted data</li></ul>", 
       ifelse(binomial, "\u03B8", "\u03BC"),
       ifelse(estimation, "", "<li>'P(H|data)' - the posterior probability of the hypothesis (after updating with the data)</li>"),
-      ifelse(binomial, gettext(" (Successes)"), "")
+      ifelse(binomial, gettext(" (Successes)"), ""),
+      switch(
+        options$predictionTableEstimate,
+        "mean"   = gettext("Mean"),
+        "median" = gettext("Median"),
+        "mode"   = gettext("Mode")
+      ),
+      switch(
+        options$predictionTableEstimate,
+        "mean"   = gettext("mean"),
+        "median" = gettext("median"),
+        "mode"   = gettext("mode")
+      )
     )
     
     out <- paste0(predictions_text, " ", predictions_formulas, "\n\n", table_description)
