@@ -16,7 +16,7 @@
 #
 
 LSbinomialtesting   <- function(jaspResults, dataset, options, state = NULL){
-
+  
   # a vector of two, first for data, second for hypotheses
   ready <- .readyBinomialLS(options)
   
@@ -464,7 +464,7 @@ LSbinomialtesting   <- function(jaspResults, dataset, options, state = NULL){
   return()
 }
 .plotsPredictionsBinomial2LS  <- function(jaspResults, data, ready, options, type = c("Prior", "Posterior")){
-
+  
   containerPlots <- .containerPrediction2PlotsLS(jaspResults, options, "bin_test", type)
   
   if (is.null(containerPlots[[paste0("plotsPredictions",type)]])){
@@ -976,13 +976,13 @@ LSbinomialtesting   <- function(jaspResults, dataset, options, state = NULL){
       temp_results <- .testBinomialLS(temp_data, options[["priors"]])
       
       if (options[["plotsIterativeType"]] == "conditional"){
-        yName  <- "Conditional probability"
+        yName  <- gettext("Conditional probability")
         temp_y <- exp(temp_results[,"log_lik"])
       } else if (options[["plotsIterativeType"]] == "joint"){
-        yName  <- "Joint probability"
+        yName  <- gettext("Joint probability")
         temp_y <- exp(temp_results[,"log_lik"])*temp_results[,"prior"]       
       } else if (options[["plotsIterativeType"]] == "marginal"){
-        yName  <- "Marginal probability"
+        yName  <- gettext("Posterior probability")
         temp_y <- temp_results[,"posterior"]
       } else if (options[["plotsIterativeType"]] == "BF"){
         
@@ -1007,18 +1007,18 @@ LSbinomialtesting   <- function(jaspResults, dataset, options, state = NULL){
         else if (options[["bayesFactorTypeSequential"]] == "LogBF10")
           temp_y <- log(temp_bf)
         
+        yName <- switch(
+          options[["bayesFactorTypeSequential"]],
+          "BF10"    = bquote("BF"["10"]),
+          "BF01"    = bquote("BF"["01"]),
+          "LogBF10" = bquote(italic("log")*"(BF)"["10"])
+        )
       }
       
       results <- rbind.data.frame(results, temp_y)
       
     }
     
-    yName <- switch(
-      options[["bayesFactorTypeSequential"]],
-      "BF10"    = bquote("BF"["10"]),
-      "BF01"    = bquote("BF"["01"]),
-      "LogBF10" = bquote(italic("log")*"(BF)"["10"])
-    )
     
     plot_data_lines <- list()
     for(h in 1:length(options[["priors"]])){

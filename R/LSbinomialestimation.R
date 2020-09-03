@@ -18,7 +18,7 @@
 
 
 LSbinomialestimation   <- function(jaspResults, dataset, options, state = NULL){
-
+  
   # a vector of two, first for data, second for hypotheses
   ready <- .readyBinomialLS(options)
   
