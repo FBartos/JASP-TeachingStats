@@ -16,10 +16,9 @@
 #
 
 
-library(MGLM)
-library(HDInterval)
-library(DT)
-library(MCMCpack)
+#library(HDInterval)
+#library(extraDistr)
+#library(MCMCpack)
 #source("combinations.R")
 
 
@@ -101,7 +100,7 @@ compare_function3 <- function(m, n, t, alpha = 1, beta = 1, simulation){
   
   # calculate the probability that player 1 wins using beta negative binomial distribution
   # "x" is the number of failures, "size" is the number of successes
-  p_calculated <- pbnbinom(q = t-n-1, size = t-m, alpha = m+alpha, beta = n+beta)
+  p_calculated <- extraDistr::pbnbinom(q = t-n-1, size = t-m, alpha = m+alpha, beta = n+beta)
   
   # calculating the difference between the simulated and the calculated value
   dif = abs(p_simulated - p_calculated)
@@ -174,20 +173,50 @@ LSgameofskills   <- function(jaspResults, dataset, options, state = NULL){
   alpha <- as.numeric(unlist(strsplit(input$alpha,",")))
   k <- as.numeric(unlist(strsplit(input$k,",")))
   
+  
+  
+  ## check errors
+  if(input$n < 2)
+    JASP:::.quitAnalysis(gettextf(
+      "Warning: The number of players must be at least 2. Adjust the inputs!"
+    ))
+  
+  if(input$n != length(k))
+    JASP:::.quitAnalysis(gettextf(
+      "The number of players (%1$i) does not equal the numbers of points for each player when interrupted (%2$i). Please check the appropriate settings.",
+      input$n,
+      length(k)
+    ))
+  
+  if(max(k) >= input$t)
+    JASP:::.quitAnalysis(gettextf(
+      "Warning: Player %1$i has already won the game. Adjust the inputs!",
+      which(k == max(k))
+    ))
+  
+  if(sum(c(k,alpha) > 0) != length(c(k,alpha)))
+    JASP:::.quitAnalysis(gettextf(
+      "Warning: No negative input values! Adjust the inputs!"
+    ))
+  
+
+  
+  
   ## Summary Table
-  summaryTable <- createJaspTable(title = "Summary Table")
+  summaryTable <- createJaspTable(title = gettext("Summary Table"))
   
   summaryTable$dependOn(c("n", "alpha", "k", "t", "s", "check"))
   summaryTable$addCitation("JASP Team (2018). JASP (Version 0.9.2) [Computer software].")
   
-  summaryTable$addColumnInfo(name = "players",   title = "Players",   type = "string")
-  summaryTable$addColumnInfo(name = "prior",   title = "Prior Belief",   type = "string")
-  summaryTable$addColumnInfo(name = "points",   title = "Points Obtained",   type = "string")
-  summaryTable$addColumnInfo(name = "pA",   title = "Analytical",   type = "string", 
-                             overtitle = "Pr(win the game)")
-  summaryTable$addColumnInfo(name = "pS",   title = "Simulated",   type = "string", 
-                             overtitle = "Pr(win the game)")
+  summaryTable$addColumnInfo(name = "players",   title = gettext("Players"),   type = "string")
+  summaryTable$addColumnInfo(name = "prior",   title = gettext("Prior Belief"),   type = "string")
+  summaryTable$addColumnInfo(name = "points",   title = gettext("Points Obtained"),   type = "string")
+  summaryTable$addColumnInfo(name = "pA",   title = gettext("Analytical"),   type = "number", 
+                             overtitle = gettext("Pr(win the game)"))
+  summaryTable$addColumnInfo(name = "pS",   title = gettext("Simulated"),   type = "number", 
+                             overtitle = gettext("Pr(win the game)"))
   
+
   ## Credible Interval Plot
   CIPlot <- createJaspPlot(title = "Probability of Player 1 Winning",  width = 480, height = 320)
   CIPlot$dependOn(c("n", "k", "t", "p", "s", "check"))
@@ -195,10 +224,10 @@ LSgameofskills   <- function(jaspResults, dataset, options, state = NULL){
   
   # column specification
   CIPlot0 <- ggplot2::ggplot(data= NULL) + 
-    ggtitle("Probability of Player 1 Winning") +
-    xlab("Number of Simulated Games") + 
-    ylab("Pr(Winning the Game)") +
-    coord_cartesian(xlim = c(0, input$s), ylim = c(0, 1)) 
+    #ggtitle("Probability of Player 1 Winning") +
+    ggplot2::xlab("Number of Simulated Games") + 
+    ggplot2::ylab("Pr(Winning the Game)") +
+    ggplot2::coord_cartesian(xlim = c(0, input$s), ylim = c(0, 1)) 
   
   ## fill in the table and the plot 
   if (input$n == 2 & max(k) < input$t){
@@ -224,17 +253,17 @@ LSgameofskills   <- function(jaspResults, dataset, options, state = NULL){
       for (i in 1:input$s){  
         SimulMatrix[, i] <- rbeta(1000, SimulResult[i]*i+alpha[1], i-SimulResult[i]*i+alpha[2])
       }
-      CredInt <- apply(SimulMatrix, 2, hdi) # record the credibility interval
+      CredInt <- apply(SimulMatrix, 2, HDInterval::hdi) # record the credibility interval
       y.upper <- CredInt[1,]
       y.lower <- CredInt[2,]
       CIPlot0 <- CIPlot0 + 
-        geom_polygon(aes(x = c(1:input$s,input$s:1), y = c(y.upper, rev(y.lower))), 
+        ggplot2::geom_polygon(aes(x = c(1:input$s,input$s:1), y = c(y.upper, rev(y.lower))), 
                      fill = "lightsteelblue")  # CI
     }
     
     CIPlot$plotObject <- CIPlot0 + 
-      geom_line(color = "darkred", aes(x = c(1:input$s), y = rep(result[[2]], input$s))) +  # analytical prob
-      geom_line(data= NULL, aes(x = c(1:input$s), y = result[[4]])) # simulated prob
+      ggplot2::geom_line(color = "darkred", aes(x = c(1:input$s), y = rep(result[[2]], input$s))) +  # analytical prob
+      ggplot2::geom_line(data= NULL, aes(x = c(1:input$s), y = result[[4]])) # simulated prob
     
     
   }else if (input$n >= 3 & max(k) < input$t){
@@ -263,19 +292,19 @@ LSgameofskills   <- function(jaspResults, dataset, options, state = NULL){
       SimulMatrix <- matrix(0, nrow = 1000, ncol = input$s) # the matrix of samples from posterior distribution based on simulated result
       
       for (i in 1:input$s){  
-        SimulMatrix[, i] <- rdirichlet(1000, result[[4]][,i]*i+alpha)[,1]
+        SimulMatrix[, i] <- MCMCpack::rdirichlet(1000, result[[4]][,i]*i+alpha)[,1]
       }
-      CredInt <- apply(SimulMatrix, 2, hdi) # record the credibility interval
+      CredInt <- apply(SimulMatrix, 2, HDInterval::hdi) # record the credibility interval
       y.upper <- CredInt[1,]
       y.lower <- CredInt[2,]
       CIPlot0 <- CIPlot0 + 
-        geom_polygon(aes(x = c(1:input$s,input$s:1), y = c(y.upper, rev(y.lower))), 
+        ggplot2::geom_polygon(aes(x = c(1:input$s,input$s:1), y = c(y.upper, rev(y.lower))), 
                      fill = "lightsteelblue")  # CI
     }
     
-    CIPlot$plotObject <- CIPlot0 + 
-      geom_line(color = "darkred", aes(x = c(1:input$s), y = rep(result[[2]], input$s))) +   # analytical prob
-      geom_line(data= NULL, aes(x = c(1:input$s), y = result[[4]][1,])) # simulated prob
+    CIPlot$plotObject <- JASPgraphs::themeJasp(CIPlot0) + 
+      ggplot2::geom_line(color = "darkred", aes(x = c(1:input$s), y = rep(result[[2]], input$s))) +   # analytical prob
+      ggplot2::geom_line(data= NULL, aes(x = c(1:input$s), y = result[[4]][1,])) # simulated prob
     
   }
   jaspResults[["summaryTable"]] <- summaryTable

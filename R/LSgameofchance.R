@@ -15,12 +15,39 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-library(MGLM)
-library(HDInterval)
-library(DT)
-library(MCMCpack)
+# library(MGLM)
+#library(HDInterval)
+
+#library(MCMCpack)
 #source("combinations.R")
 
+
+combinations <- function(k){
+  if (length(k) == 3){ # the number of players
+    #k <- c(1,2,3)
+    num <- prod(k)/k[1] #total number of sets
+    #sets <- vector(mode = "list", length = num)
+    sets <- matrix(nrow = num, ncol = length(k))
+    for (i in 0:(k[2]-1)){
+      for (j in 0:(k[3]-1)){
+        sets[i*k[3]+j+1,] <- c(k[1],i,j)
+      }
+    }
+    return(sets)
+  }else{
+    #k <- c(1,2,3,4)
+    #x1 <- sets
+    x1 <- combinations(k[1:(length(k) - 1)]) # k without k[length(k)]
+    x2 <- k[length(k)]  
+    y <- matrix(ncol = length(k), nrow = prod(k)/k[1])
+    for (i in 1:length(x1[,1])){
+      for (j in 1:k[length(k)]){
+        y[(i-1)*(k[length(k)])+j,] <- append(x1[i,],j-1)
+      }
+    }
+    return(y)
+  }
+} 
 
 
 compare_function1 <- function(p,m1,n1,t,simulation){
@@ -104,7 +131,7 @@ compare_function2 <- function(k1, t, p, simulation){
   ## Calculating the probability using negative multinomial distribution and resursive function
   p_calculated <- 0
   for (l in 1:(prod(k)/k[1])){
-    p_calculated <- p_calculated + exp(dnegmn(Y = combinations(k)[l,2:length(k)],
+    p_calculated <- p_calculated + exp(MGLM::dnegmn(Y = combinations(k)[l,2:length(k)],
                                               beta = combinations(k)[1], prob = p[2:length(p)]))
   }
   
@@ -116,33 +143,6 @@ compare_function2 <- function(k1, t, p, simulation){
 
 #l <- compare_function2(c(1,1,1), 2, c(0.2,0.4,0.4), 10)
 #l
-
-combinations <- function(k){
-  if (length(k) == 3){ # the number of players
-    #k <- c(1,2,3)
-    num <- prod(k)/k[1] #total number of sets
-    #sets <- vector(mode = "list", length = num)
-    sets <- matrix(nrow = num, ncol = length(k))
-    for (i in 0:(k[2]-1)){
-      for (j in 0:(k[3]-1)){
-        sets[i*k[3]+j+1,] <- c(k[1],i,j)
-      }
-    }
-    return(sets)
-  }else{
-    #k <- c(1,2,3,4)
-    #x1 <- sets
-    x1 <- combinations(k[1:(length(k) - 1)]) # k without k[length(k)]
-    x2 <- k[length(k)]  
-    y <- matrix(ncol = length(k), nrow = prod(k)/k[1])
-    for (i in 1:length(x1[,1])){
-      for (j in 1:k[length(k)]){
-        y[(i-1)*(k[length(k)])+j,] <- append(x1[i,],j-1)
-      }
-    }
-    return(y)
-  }
-} 
 
 ##
 LSgameofchance   <- function(jaspResults, dataset, options, state = NULL){
@@ -158,31 +158,49 @@ LSgameofchance   <- function(jaspResults, dataset, options, state = NULL){
   p <- as.numeric(unlist(strsplit(input$p,",")))/sum(as.numeric(unlist(strsplit(input$p,","))))
   
   ## check errors
-  #need(max(k()) < input$t, paste("Warning: Player", which(k() == max(k())),
-  #                               " has already won the game. Adjust the inputs!")),
-  #.hasErrors(dataset, type = "limits",
-  #           message = paste("Warning: Player", which(k == max(k)),
-  #                           " has already won the game. Adjust the inputs!"),  
-  #           limits.target = input$t,
-  #           limits.max = max(k) - 1,
-  #           exitAnalysisIfErrors = TRUE)
+  if(input$n < 2)
+    JASP:::.quitAnalysis(gettextf(
+      "Warning: The number of players must be at least 2. Adjust the inputs!"
+    ))
   
+  if(input$n != length(k))
+    JASP:::.quitAnalysis(gettextf(
+      "The number of players (%1$i) does not equal the numbers of points for each player when interrupted (%2$i). Please check the appropriate settings.",
+      input$n,
+      length(k)
+    ))
   
+  if(max(k) >= input$t)
+    JASP:::.quitAnalysis(gettextf(
+      "Warning: Player %1$i has already won the game. Adjust the inputs!",
+      which(k == max(k))
+    ))
+  
+  if(sum(c(k,p) > 0) != length(c(k,p)))
+    JASP:::.quitAnalysis(gettextf(
+      "Warning: No negative input values! Adjust the inputs!"
+    ))
   
 
   
+  
   ## Summary Table
-  summaryTable <- createJaspTable(title = "Summary Table")
+  summaryTable <- createJaspTable(title = gettext("Summary Table"))
   
   summaryTable$dependOn(c("n", "k", "t", "p", "s", "check"))
   summaryTable$addCitation("JASP Team (2018). JASP (Version 0.9.2) [Computer software].")
   
-  summaryTable$addColumnInfo(name = "players",   title = "Players",   type = "string")
-  summaryTable$addColumnInfo(name = "pPoint",   title = "Pr(win a point)",   type = "string")
-  summaryTable$addColumnInfo(name = "pA",   title = "Analytical",   type = "string", 
-                             overtitle = "Pr(win the game)")
-  summaryTable$addColumnInfo(name = "pS",   title = "Simulated",   type = "string", 
-                             overtitle = "Pr(win the game)")
+  summaryTable$addColumnInfo(name = "players",   title = gettext("Players"),   type = "string")
+  summaryTable$addColumnInfo(name = "pPoint",   title = gettext("Pr(win a point)"),   type = "number")
+  summaryTable$addColumnInfo(name = "pA",   title = gettext("Analytical"),   type = "number", 
+                             overtitle = gettext("Pr(win the game)"))
+  summaryTable$addColumnInfo(name = "pS",   title = gettext("Simulated"),   type = "number", 
+                             overtitle = gettext("Pr(win the game)"))
+  
+  # add footnote for normalization of prob
+  if(sum(as.numeric(unlist(strsplit(input$p,",")))) != 1){
+    summaryTable$addFootnote("The probability entered does not sum to 1. Already normalized!")
+  }
   
   ## Credible Interval Plot
   CIPlot <- createJaspPlot(title = "Probability of Player 1 Winning",  width = 480, height = 320)
@@ -191,10 +209,10 @@ LSgameofchance   <- function(jaspResults, dataset, options, state = NULL){
   
   # column specification
   CIPlot0 <- ggplot2::ggplot(data= NULL) + 
-    ggtitle("Probability of Player 1 Winning") +
-    xlab("Number of Simulated Games") + 
-    ylab("Pr(Winning the Game)") +
-    coord_cartesian(xlim = c(0, input$s), ylim = c(0, 1)) 
+    #ggplot2::ggtitle("Probability of Player 1 Winning") +
+    ggplot2::xlab("Number of Simulated Games") + 
+    ggplot2::ylab("Pr(Winning the Game)") +
+    ggplot2::coord_cartesian(xlim = c(0, input$s), ylim = c(0, 1)) 
   
   ## fill in the table and the plot 
   if (input$n == 2 & max(k) < input$t){
@@ -216,17 +234,17 @@ LSgameofchance   <- function(jaspResults, dataset, options, state = NULL){
       for (i in 1:input$s){  
         SimulMatrix[, i] <- rbeta(1000, SimulResult[i]*i+1, i-SimulResult[i]*i+1)
       }
-      CredInt <- apply(SimulMatrix, 2, hdi) # record the credibility interval
+      CredInt <- apply(SimulMatrix, 2, HDInterval::hdi) # record the credibility interval
       y.upper <- CredInt[1,]
       y.lower <- CredInt[2,]
       CIPlot0 <- CIPlot0 + 
-        geom_polygon(aes(x = c(1:input$s,input$s:1), y = c(y.upper, rev(y.lower))), 
+        ggplot2::geom_polygon(aes(x = c(1:input$s,input$s:1), y = c(y.upper, rev(y.lower))), 
                      fill = "lightsteelblue")  # CI
     }
     
     CIPlot$plotObject <- CIPlot0 + 
-      geom_line(color = "darkred", aes(x = c(1:input$s), y = rep(result[[2]], input$s))) +  # analytical prob
-      geom_line(data= NULL, aes(x = c(1:input$s), y = result[[4]])) # simulated prob
+      ggplot2::geom_line(color = "darkred", aes(x = c(1:input$s), y = rep(result[[2]], input$s))) +  # analytical prob
+      ggplot2::geom_line(data= NULL, aes(x = c(1:input$s), y = result[[4]])) # simulated prob
     
     
   }else if (input$n >= 3 & max(k) < input$t){
@@ -255,21 +273,23 @@ LSgameofchance   <- function(jaspResults, dataset, options, state = NULL){
       SimulMatrix <- matrix(0, nrow = 1000, ncol = input$s) # the matrix of samples from posterior distribution based on simulated result
       
       for (i in 1:input$s){  
-        SimulMatrix[, i] <- rdirichlet(1000, result[[4]][,i]*i+1)[,1]
+        SimulMatrix[, i] <- MCMCpack::rdirichlet(1000, result[[4]][,i]*i+1)[,1]
       }
-      CredInt <- apply(SimulMatrix, 2, hdi) # record the credibility interval
+      CredInt <- apply(SimulMatrix, 2, HDInterval::hdi) # record the credibility interval
       y.upper <- CredInt[1,]
       y.lower <- CredInt[2,]
       CIPlot0 <- CIPlot0 + 
-        geom_polygon(aes(x = c(1:input$s,input$s:1), y = c(y.upper, rev(y.lower))), 
+        ggplot2::geom_polygon(aes(x = c(1:input$s,input$s:1), y = c(y.upper, rev(y.lower))), 
                      fill = "lightsteelblue")  # CI
     }
     
-    CIPlot$plotObject <- CIPlot0 + 
-      geom_line(color = "darkred", aes(x = c(1:input$s), y = rep(result[[2]], input$s))) +   # analytical prob
-      geom_line(data= NULL, aes(x = c(1:input$s), y = result[[4]][1,])) # simulated prob
+    CIPlot$plotObject <- JASPgraphs::themeJasp(CIPlot0) + 
+      ggplot2::geom_line(color = "darkred", aes(x = c(1:input$s), y = rep(result[[2]], input$s))) +   # analytical prob
+      ggplot2::geom_line(data= NULL, aes(x = c(1:input$s), y = result[[4]][1,])) # simulated prob
     
   }
+  
+
   
   jaspResults[["summaryTable"]] <- summaryTable
   jaspResults[["CIPlot"]] <- CIPlot
