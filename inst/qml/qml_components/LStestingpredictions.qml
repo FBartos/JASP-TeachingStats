@@ -15,11 +15,11 @@
 // License along with this program.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-import QtQuick 2.8
-import QtQuick.Layouts 1.3
-import JASP.Controls 1.0
-import JASP.Widgets 1.0
-import JASP.Theme 1.0
+import QtQuick			2.8
+import QtQuick.Layouts	1.3
+import JASP.Controls	1.0
+import JASP.Widgets		1.0
+import JASP				1.0
 
 Section
 {
@@ -128,7 +128,7 @@ Section
 										 plotsPredictionPostTypeCI.currentText == "HPD"
 								enabled: plotsPredictionPostCI.checked
 								name: "plotsPredictionPostCoverage"
-								label: qsTr("coverage")
+								label: qsTr("mass")
 								fieldWidth: 50
 								defaultValue: 95; min: 0; max: 100; inclusive: JASP.MaxOnly
 							}
@@ -230,18 +230,18 @@ Section
 										 plotsPredictionPostMarginalTypeCI.currentText == "HPD"
 								enabled: plotsPredictionPostMarginalCI.checked
 								name: "plotsPredictionPostMarginalCoverage"
-								label: qsTr("coverage")
+								label: qsTr("mass")
 								fieldWidth: 50
 								defaultValue: 95; min: 0; max: 100; inclusive: JASP.MaxOnly
 							}
 
 							DoubleField
 							{
+								id: plotsPredictionPostMarginalLower
 								visible: plotsPredictionPostMarginalTypeCI.currentText == "custom"
 								enabled: plotsPredictionPostMarginalCI.checked
 								name: "plotsPredictionPostMarginalLower"
 								label: qsTr("lower")
-								id: plotsMarginalPredictionPostLower
 								fieldWidth: 50
 								defaultValue: 0; min: 0; max: plotsPredictionPostMarginalUpper.value; inclusive: JASP.MinMax
 							}

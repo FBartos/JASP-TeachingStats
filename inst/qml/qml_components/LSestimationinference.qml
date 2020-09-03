@@ -20,6 +20,7 @@ import QtQuick.Layouts 1.3
 import JASP.Controls 1.0
 import JASP.Widgets 1.0
 import JASP.Theme 1.0
+import JASP 1.0
 
 Section
 {
@@ -53,33 +54,13 @@ Section
 		}
 	}
 
-	Group
+
+	DropDown
 	{
 		Layout.columnSpan:	2
-		title:	qsTr("Point estimate")
-
-		RadioButtonGroup
-		{
-			name:	"pointEstimate"
-			RadioButton
-			{
-				value:	"mean"
-				label:	qsTr("Mean")
-				checked: true
-			}
-
-			RadioButton
-			{
-				value:	"median"
-				label:	qsTr("Median")
-			}
-
-			RadioButton
-			{
-				name:	"mode"
-				label:	qsTr("Mode")
-			}
-		}
+		name:		"pointEstimate"
+		label:		qsTr("Point estimate")
+		values:		["mean", "median", "mode"]
 	}
 
 
@@ -133,7 +114,7 @@ Section
 									plotsPriorIndividualType.currentText == "HPD"
 						enabled: plotsPriorIndividualCI.checked
 						name: "plotsPriorCoverage"
-						label: qsTr("coverage")
+						label: qsTr("mass")
 						fieldWidth: 50
 						defaultValue: 95; min: 0; max: 100; inclusive: JASP.MaxOnly
 					}
@@ -212,7 +193,7 @@ Section
 									plotsPosteriorIndividualType.currentText == "HPD"
 						enabled: plotsPosteriorIndividualCI.checked
 						name: "plotsPosteriorCoverage"
-						label: qsTr("coverage")
+						label: qsTr("mass")
 						fieldWidth: 50
 						defaultValue: 95; min: 0; max: 100; inclusive: JASP.MaxOnly
 					}

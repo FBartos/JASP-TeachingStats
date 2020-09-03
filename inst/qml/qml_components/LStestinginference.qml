@@ -15,11 +15,11 @@
 // License along with this program.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-import QtQuick 2.8
-import QtQuick.Layouts 1.3
-import JASP.Controls 1.0
-import JASP.Widgets 1.0
-import JASP.Theme 1.0
+import QtQuick			2.8
+import QtQuick.Layouts	1.3
+import JASP.Controls	1.0
+import JASP.Widgets		1.0
+import JASP				1.0
 
 Section
 {
@@ -152,7 +152,7 @@ Section
 								 plotsPriorTypeCI.currentText == "HPD"
 						enabled: plotsPriorCI.checked
 						name: "plotsPriorCoverage"
-						label: qsTr("coverage")
+						label: qsTr("mass")
 						fieldWidth: 50
 						defaultValue: 95; min: 0; max: 100; inclusive: JASP.MaxOnly
 					}
@@ -250,7 +250,7 @@ Section
 								 plotsPriorMarginalType.currentText == "HPD"
 						enabled: plotsPriorMarginalCI.checked
 						name: "plotsPriorMarginalCoverage"
-						label: qsTr("coverage")
+						label: qsTr("mass")
 						fieldWidth: 50
 						defaultValue: 95; min: 0; max: 100; inclusive: JASP.MaxOnly
 					}
@@ -341,7 +341,7 @@ Section
 								 plotsPredictionTypeCI.currentText == "HPD"
 						enabled: plotsPredictionCI.checked
 						name: "plotsPredictionCoverage"
-						label: qsTr("coverage")
+						label: qsTr("mass")
 						fieldWidth: 50
 						defaultValue: 95; min: 0; max: 100; inclusive: JASP.MaxOnly
 					}
@@ -442,7 +442,7 @@ Section
 								 plotsPredictionMarginalTypeCI.currentText == "HPD"
 						enabled: plotsPredictionMarginalCI.checked
 						name: "plotsPredictionMarginalCoverage"
-						label: qsTr("coverage")
+						label: qsTr("mass")
 						fieldWidth: 50
 						defaultValue: 95; min: 0; max: 100; inclusive: JASP.MaxOnly
 					}
@@ -553,7 +553,7 @@ Section
 								 plotsPosteriorTypeCI.currentText == "HPD"
 						enabled: plotsPosteriorCI.checked
 						name: "plotsPosteriorCoverage"
-						label: qsTr("coverage")
+						label: qsTr("mass")
 						fieldWidth: 50
 						defaultValue: 95; min: 0; max: 100; inclusive: JASP.MaxOnly
 					}
@@ -663,7 +663,7 @@ Section
 								 plotsPosteriorMarginalType.currentText == "HPD"
 						enabled: plotsPosteriorMarginalCI.checked
 						name: "plotsPosteriorMarginalCoverage"
-						label: qsTr("coverage")
+						label: qsTr("mass")
 						fieldWidth: 50
 						defaultValue: 95; min: 0; max: 100; inclusive: JASP.MaxOnly
 					}
@@ -674,7 +674,7 @@ Section
 						enabled: plotsPosteriorMarginalCI.checked
 						name: "plotsPosteriorMarginalLower"
 						label: qsTr("lower")
-						id: plotsMarginalPosteriorLower
+						id: plotsPosteriorMarginalLower
 						fieldWidth: 50
 						defaultValue: 0.25; min: 0; max: plotsPosteriorMarginalUpper.value; inclusive: JASP.MinMax
 					}
