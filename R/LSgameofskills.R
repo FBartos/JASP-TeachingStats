@@ -165,16 +165,19 @@ compare_function4 <- function(k,t,alpha,simulation){
 
 
 
-LSgameofskills   <- function(jaspResults, dataset, options, state = NULL){
+LSgameofskill   <- function(jaspResults, dataset, options, state = NULL){
   ## some transformation to match previous code
-  input <- list("n" = options$n, "alpha" = options$alpha, "k" = options$k, "t" = options$t, 
-                "s" = options$s, "check" = options$check)
-  # input <- list("p" = "1,1", "k" = "1,1", "t" = 2, "s" = 100, "n"= 2)
-  alpha <- as.numeric(unlist(strsplit(input$alpha,",")))
-  k <- as.numeric(unlist(strsplit(input$k,",")))
+  input <- list(
+    "n"     = length(options[["players"]]),
+    "alpha" = sapply(options[["players"]], function(p)p$values[[1]]),
+    "k"     = sapply(options[["players"]], function(p)p$values[[2]]),
+    "t"     = options[["winPoints"]], 
+    "s"     = options[["nSims"]],
+    "check" = options[["CI"]])
+  alpha <- sapply(options[["players"]], function(p)p$values[[1]])
+  k     <- sapply(options[["players"]], function(p)p$values[[2]])
   
-  
-  
+
   ## check errors
   if(input$n < 2)
     JASP:::.quitAnalysis(gettextf(
@@ -199,27 +202,25 @@ LSgameofskills   <- function(jaspResults, dataset, options, state = NULL){
       "Warning: No negative input values! Adjust the inputs!"
     ))
   
-
-  
   
   ## Summary Table
   summaryTable <- createJaspTable(title = gettext("Summary Table"))
   
-  summaryTable$dependOn(c("n", "alpha", "k", "t", "s", "check"))
+  summaryTable$dependOn(c("players", "nSims", "winPoints", "CI"))
   summaryTable$addCitation("JASP Team (2018). JASP (Version 0.9.2) [Computer software].")
   
   summaryTable$addColumnInfo(name = "players",   title = gettext("Players"),   type = "string")
-  summaryTable$addColumnInfo(name = "prior",   title = gettext("Prior Belief"),   type = "string")
-  summaryTable$addColumnInfo(name = "points",   title = gettext("Points Obtained"),   type = "string")
+  summaryTable$addColumnInfo(name = "prior",   title = gettext("Prior Skill"),   type = "string")
+  summaryTable$addColumnInfo(name = "points",   title = gettext("Points Gained"),   type = "string")
   summaryTable$addColumnInfo(name = "pA",   title = gettext("Analytical"),   type = "number", 
-                             overtitle = gettext("Pr(win the game)"))
+                             overtitle = gettext("p(win the game)"))
   summaryTable$addColumnInfo(name = "pS",   title = gettext("Simulated"),   type = "number", 
-                             overtitle = gettext("Pr(win the game)"))
+                             overtitle = gettext("p(win the game)"))
   
 
   ## Credible Interval Plot
   CIPlot <- createJaspPlot(title = "Probability of Player 1 Winning",  width = 480, height = 320)
-  CIPlot$dependOn(c("n", "k", "t", "p", "s", "check"))
+  CIPlot$dependOn(c("players", "nSims", "winPoints", "CI"))
   CIPlot$addCitation("JASP Team (2018). JASP (Version 0.9.2) [Computer software].")
   
   # column specification
@@ -257,13 +258,13 @@ LSgameofskills   <- function(jaspResults, dataset, options, state = NULL){
       y.upper <- CredInt[1,]
       y.lower <- CredInt[2,]
       CIPlot0 <- CIPlot0 + 
-        ggplot2::geom_polygon(aes(x = c(1:input$s,input$s:1), y = c(y.upper, rev(y.lower))), 
+        ggplot2::geom_polygon(ggplot2::aes(x = c(1:input$s,input$s:1), y = c(y.upper, rev(y.lower))), 
                      fill = "lightsteelblue")  # CI
     }
     
-    CIPlot$plotObject <- CIPlot0 + 
-      ggplot2::geom_line(color = "darkred", aes(x = c(1:input$s), y = rep(result[[2]], input$s))) +  # analytical prob
-      ggplot2::geom_line(data= NULL, aes(x = c(1:input$s), y = result[[4]])) # simulated prob
+    CIPlot$plotObject <- JASPgraphs::themeJasp(CIPlot0) + 
+      ggplot2::geom_line(color = "darkred", ggplot2::aes(x = c(1:input$s), y = rep(result[[2]], input$s))) +  # analytical prob
+      ggplot2::geom_line(data= NULL, ggplot2::aes(x = c(1:input$s), y = result[[4]])) # simulated prob
     
     
   }else if (input$n >= 3 & max(k) < input$t){
@@ -298,13 +299,13 @@ LSgameofskills   <- function(jaspResults, dataset, options, state = NULL){
       y.upper <- CredInt[1,]
       y.lower <- CredInt[2,]
       CIPlot0 <- CIPlot0 + 
-        ggplot2::geom_polygon(aes(x = c(1:input$s,input$s:1), y = c(y.upper, rev(y.lower))), 
+        ggplot2::geom_polygon(ggplot2::aes(x = c(1:input$s,input$s:1), y = c(y.upper, rev(y.lower))), 
                      fill = "lightsteelblue")  # CI
     }
     
     CIPlot$plotObject <- JASPgraphs::themeJasp(CIPlot0) + 
-      ggplot2::geom_line(color = "darkred", aes(x = c(1:input$s), y = rep(result[[2]], input$s))) +   # analytical prob
-      ggplot2::geom_line(data= NULL, aes(x = c(1:input$s), y = result[[4]][1,])) # simulated prob
+      ggplot2::geom_line(color = "darkred", ggplot2::aes(x = c(1:input$s), y = rep(result[[2]], input$s))) +   # analytical prob
+      ggplot2::geom_line(data= NULL, ggplot2::aes(x = c(1:input$s), y = result[[4]][1,])) # simulated prob
     
   }
   jaspResults[["summaryTable"]] <- summaryTable

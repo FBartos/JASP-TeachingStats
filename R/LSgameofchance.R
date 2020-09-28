@@ -22,6 +22,7 @@
 #source("combinations.R")
 
 
+
 combinations <- function(k){
   if (length(k) == 3){ # the number of players
     #k <- c(1,2,3)
@@ -59,15 +60,15 @@ compare_function1 <- function(p,m1,n1,t,simulation){
   record_game <- vector()
   for (i in 1:simulation){
     # copy m and n
-    record_trial <- rbind(m,n)
+    record_trial <- rbind(m, n)
     # keep running the game until one of them wins
-    while (record_trial[1,]*record_trial[2,]!= 0){
-      record_trial <- record_trial - rmultinom(1,1,c(p,1-p)) #updating the recorded result 
+    while (record_trial[1, ] * record_trial[2, ] != 0){
+      record_trial <- record_trial - rmultinom(1, 1, c(p, 1 - p)) #updating the recorded result 
     }
     
     # if record_trial[1,] = 0, record 1,player 1 wins this single trial; 
     # if record_trial[2,] = 0, record 0, player 2 wins 
-    record_game[i] <- record_trial[2,]^record_trial[1,]
+    record_game[i] <- record_trial[2, ]^record_trial[1, ]
     
   }
   p_simulated <- sum(record_game)/simulation    # estimated probability that player 1 wins
@@ -147,64 +148,53 @@ compare_function2 <- function(k1, t, p, simulation){
 ##
 LSgameofchance   <- function(jaspResults, dataset, options, state = NULL){
 
-  #ready <- (length(options$variables) > 0)
+  # input values
+  nPlayers  <- length(options[["players"]])
+  probWin   <- sapply(options[["players"]], function(p)p$values[[1]])
+  xPoints   <- sapply(options[["players"]], function(p)p$values[[2]])
+  winPoints <- options[["winPoints"]]
+  nSims     <- options[["nSims"]]
   
+  # normalizing the probability of wining:
+  probWin   <- probWin / sum(probWin) # normalit
   
-  ## some transformation to match previous code
-  input <- list("n" = options$n, "k" = options$k, "t" = options$t, "p" = options$p,
-                "s" = options$s, "check" = options$check)
-  # input <- list("p" = "1,1", "k" = "1,1", "t" = 2, "s" = 100, "n"= 2)
-  k <- as.numeric(unlist(strsplit(input$k,",")))
-  p <- as.numeric(unlist(strsplit(input$p,",")))/sum(as.numeric(unlist(strsplit(input$p,","))))
   
   ## check errors
-  if(input$n < 2)
-    JASP:::.quitAnalysis(gettextf(
-      "Warning: The number of players must be at least 2. Adjust the inputs!"
-    ))
+  if(nPlayers < 2)
+    JASP:::.quitAnalysis(gettext("Warning: The number of players must be at least 2. Adjust the inputs!"))
   
-  if(input$n != length(k))
-    JASP:::.quitAnalysis(gettextf(
-      "The number of players (%1$i) does not equal the numbers of points for each player when interrupted (%2$i). Please check the appropriate settings.",
-      input$n,
-      length(k)
-    ))
-  
-  if(max(k) >= input$t)
+  if(max(xPoints) >= winPoints)
     JASP:::.quitAnalysis(gettextf(
       "Warning: Player %1$i has already won the game. Adjust the inputs!",
-      which(k == max(k))
+      which(xPoints == max(xPoints))
     ))
   
-  if(sum(c(k,p) > 0) != length(c(k,p)))
-    JASP:::.quitAnalysis(gettextf(
-      "Warning: No negative input values! Adjust the inputs!"
-    ))
-  
-
+  if(sum(c(xPoints, probWin) > 0) != length(c(xPoints, probWin)))
+    JASP:::.quitAnalysis(gettext("Warning: No negative input values! Adjust the inputs!"))
   
   
   ## Summary Table
   summaryTable <- createJaspTable(title = gettext("Summary Table"))
   
-  summaryTable$dependOn(c("n", "k", "t", "p", "s", "check"))
+  summaryTable$dependOn(c("players", "winPoints", "nSims", "CI"))
   summaryTable$addCitation("JASP Team (2018). JASP (Version 0.9.2) [Computer software].")
   
   summaryTable$addColumnInfo(name = "players",   title = gettext("Players"),   type = "string")
-  summaryTable$addColumnInfo(name = "pPoint",   title = gettext("Pr(win a point)"),   type = "number")
+  summaryTable$addColumnInfo(name = "pPoint",       title = gettext("p(win 1 point)"), type = "number")
+  summaryTable$addColumnInfo(name = "pointsGained", title = gettext("Points Gained"),   type = "integer")
   summaryTable$addColumnInfo(name = "pA",   title = gettext("Analytical"),   type = "number", 
-                             overtitle = gettext("Pr(win the game)"))
+                             overtitle = gettext("p(win the game)"))
   summaryTable$addColumnInfo(name = "pS",   title = gettext("Simulated"),   type = "number", 
-                             overtitle = gettext("Pr(win the game)"))
+                             overtitle = gettext("p(win the game)"))
   
   # add footnote for normalization of prob
-  if(sum(as.numeric(unlist(strsplit(input$p,",")))) != 1){
-    summaryTable$addFootnote("The probability entered does not sum to 1. Already normalized!")
-  }
+  # if(sum(as.numeric(unlist(strsplit(probWin,",")))) != 1){
+  #   summaryTable$addFootnote("The probability entered does not sum to 1. Already normalized!")
+  # }
   
   ## Credible Interval Plot
   CIPlot <- createJaspPlot(title = "Probability of Player 1 Winning",  width = 480, height = 320)
-  CIPlot$dependOn(c("n", "k", "t", "p", "s", "check"))
+  CIPlot$dependOn(c("players", "winPoints", "nSims", "CI"))
   CIPlot$addCitation("JASP Team (2018). JASP (Version 0.9.2) [Computer software].")
   
   # column specification
@@ -212,89 +202,90 @@ LSgameofchance   <- function(jaspResults, dataset, options, state = NULL){
     #ggplot2::ggtitle("Probability of Player 1 Winning") +
     ggplot2::xlab("Number of Simulated Games") + 
     ggplot2::ylab("Pr(Winning the Game)") +
-    ggplot2::coord_cartesian(xlim = c(0, input$s), ylim = c(0, 1)) 
+    ggplot2::coord_cartesian(xlim = c(0, nSims), ylim = c(0, 1)) 
   
   ## fill in the table and the plot 
-  if (input$n == 2 & max(k) < input$t){
+  if (nPlayers == 2 & max(xPoints) < winPoints){
   
     # output of compare_function1, when there are two players
-    result <- compare_function1(p[1],k[1],k[2],input$t,input$s)
+    result <- compare_function1(probWin[1], xPoints[1], xPoints[2], winPoints, nSims)
     
     # fill in the table
-    summaryTable$addRows(list(players = 1, pPoint = p[1], pA = result[[2]], pS = result[[1]]))
-    summaryTable$addRows(list(players = 2, pPoint = 1-p[1], pA = 1-result[[2]], pS = 1-result[[1]]))
+    summaryTable$addRows(list(players = 1, pPoint = probWin[1],   pointsGained = xPoints[1], pA = result[[2]],   pS = result[[1]]))
+    summaryTable$addRows(list(players = 2, pPoint = 1-probWin[1], pointsGained = xPoints[2], pA = 1-result[[2]], pS = 1-result[[1]]))
     
     # fill in the plot
-    if (input$check){ # whether plot CI or not
+    if (options[["CI"]]){ # whether plot CI or not
       
       # Credibility interval (highest posterior density interval)
       SimulResult <- result[[4]] # store the simulated result
-      SimulMatrix <- matrix(0, nrow = 1000, ncol = input$s) # the matrix of samples from posterior distribution based on simulated result
+      SimulMatrix <- matrix(0, nrow = 1000, ncol = nSims) # the matrix of samples from posterior distribution based on simulated result
       
-      for (i in 1:input$s){  
+      for (i in 1:nSims){  
         SimulMatrix[, i] <- rbeta(1000, SimulResult[i]*i+1, i-SimulResult[i]*i+1)
       }
       CredInt <- apply(SimulMatrix, 2, HDInterval::hdi) # record the credibility interval
       y.upper <- CredInt[1,]
       y.lower <- CredInt[2,]
       CIPlot0 <- CIPlot0 + 
-        ggplot2::geom_polygon(aes(x = c(1:input$s,input$s:1), y = c(y.upper, rev(y.lower))), 
+        ggplot2::geom_polygon(ggplot2::aes(x = c(1:nSims,nSims:1), y = c(y.upper, rev(y.lower))), 
                      fill = "lightsteelblue")  # CI
     }
     
-    CIPlot$plotObject <- CIPlot0 + 
-      ggplot2::geom_line(color = "darkred", aes(x = c(1:input$s), y = rep(result[[2]], input$s))) +  # analytical prob
-      ggplot2::geom_line(data= NULL, aes(x = c(1:input$s), y = result[[4]])) # simulated prob
+    CIPlot$plotObject <- JASPgraphs::themeJasp(CIPlot0) + 
+      ggplot2::geom_line(color = "darkred", ggplot2::aes(x = c(1:nSims), y = rep(result[[2]], nSims))) +  # analytical prob
+      ggplot2::geom_line(data= NULL, ggplot2::aes(x = c(1:nSims), y = result[[4]])) # simulated prob
     
     
-  }else if (input$n >= 3 & max(k) < input$t){
+  }else if (nPlayers >= 3 & max(xPoints) < winPoints){
     # output of compare_function2, when there are three or more players
-    result <- compare_function2(k, input$t, p, input$s)
+    result <- compare_function2(xPoints, winPoints, probWin, nSims)
     
     # a vector of analytical p for all players, calculated by switching with player 1
     Analytical_Prob <- vector()
-    for (i in 1:length(p)){
-      k_copy <- replace(k, c(1, i), k[c(i, 1)])
-      p_copy <- replace(p, c(1, i), p[c(i, 1)])
-      Analytical_Prob[i] <- compare_function2(k_copy, input$t, p_copy, input$s)[[2]] 
+    for (i in 1:length(probWin)){
+      k_copy <- replace(xPoints, c(1, i), xPoints[c(i, 1)])
+      p_copy <- replace(probWin, c(1, i), probWin[c(i, 1)])
+      Analytical_Prob[i] <- compare_function2(k_copy, winPoints, p_copy, nSims)[[2]] 
     }
     
     # fill in the table
-    for (i in 1:input$n){
-      summaryTable$addRows(list(players = i, pPoint = p[i], 
-                                pA = Analytical_Prob[i], pS = result[[1]][i]))
+    for (i in 1:nPlayers){
+      summaryTable$addRows(list(
+        players = i,
+        pPoint = probWin[i],
+        pointsGained = xPoints[i],
+        pA = Analytical_Prob[i],
+        pS = result[[1]][i])
+      )
     }
     
     # fill in the plot
-    if (input$check){ # whether plot CI or not
+    if (options[["CI"]]){ # whether plot CI or not
       
       # Credibility interval (highest posterior density interval)
       SimulResult <- result[[4]] # store the simulated result
-      SimulMatrix <- matrix(0, nrow = 1000, ncol = input$s) # the matrix of samples from posterior distribution based on simulated result
+      SimulMatrix <- matrix(0, nrow = 1000, ncol = nSims) # the matrix of samples from posterior distribution based on simulated result
       
-      for (i in 1:input$s){  
+      for (i in 1:nSims){  
         SimulMatrix[, i] <- MCMCpack::rdirichlet(1000, result[[4]][,i]*i+1)[,1]
       }
       CredInt <- apply(SimulMatrix, 2, HDInterval::hdi) # record the credibility interval
       y.upper <- CredInt[1,]
       y.lower <- CredInt[2,]
       CIPlot0 <- CIPlot0 + 
-        ggplot2::geom_polygon(aes(x = c(1:input$s,input$s:1), y = c(y.upper, rev(y.lower))), 
+        ggplot2::geom_polygon(ggplot2::aes(x = c(1:nSims,nSims:1), y = c(y.upper, rev(y.lower))), 
                      fill = "lightsteelblue")  # CI
     }
     
     CIPlot$plotObject <- JASPgraphs::themeJasp(CIPlot0) + 
-      ggplot2::geom_line(color = "darkred", aes(x = c(1:input$s), y = rep(result[[2]], input$s))) +   # analytical prob
-      ggplot2::geom_line(data= NULL, aes(x = c(1:input$s), y = result[[4]][1,])) # simulated prob
-    
+      ggplot2::geom_line(color = "darkred", ggplot2::aes(x = c(1:nSims), y = rep(result[[2]], nSims))) +   # analytical prob
+      ggplot2::geom_line(data= NULL, ggplot2::aes(x = c(1:nSims), y = result[[4]][1,])) # simulated prob
   }
-  
 
   
   jaspResults[["summaryTable"]] <- summaryTable
   jaspResults[["CIPlot"]] <- CIPlot
-
-  
 
   return()
 }

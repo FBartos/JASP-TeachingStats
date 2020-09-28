@@ -1,11 +1,11 @@
-Package: LearnBayes
+Package: Learn Bayes
 Type: Package
 Title: Learn Bayes Module for JASP
-Version: 0.1.0
-Date: 2020-08-04
+Version: 0.14.0
+Date: 2020-09-28
 Author: JASP Team
-Website: www.jasp-stats.org
+Website: jasp-stats.org
 Maintainer: JASP Team <info@jasp-stats.org>
 Description: Learning Bayesian Statistics with JASP
 License: GPL (>= 2)
-Imports: MGLM, HDInterval, DT, MCMCpack
+Imports: HDInterval, DT

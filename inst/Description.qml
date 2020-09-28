@@ -3,28 +3,22 @@ import JASP.Module 	1.0
 
 Description
 {
-	title :			"Learn Bayes"
-	name: 			"LearnBayes"
-	icon:			"learning-stats.png"
-	description:	"Learning Bayesian Statistics with JASP"
-	version:		"0.1"
+	name:			"Learn Bayes"
+	title : 		qsTr("Learn Bayes")
+	description:	qsTr("Learning Bayesian Statistics with JASP")
+	icon:			"learn-bayes.svg"
+	version:		"0.14"
 	requiresData:	false
 	author:			"JASP Team"
 	maintainer:		"JASP Team <info@jasp-stats.org>"
-	website:		"www.jasp-stats.org"
+	website:		"jasp-stats.org"
 	license:		"GPL (>= 2)"
 
-	Package { name: "MGLM" }
 	Package { name: "HDInterval" }
 	Package { name: "DT" }
-	Package { name: "MCMCpack" }
-	Package { name: "extraDistr" }
-	Package { name: "ggplot2" }
-
-
 	GroupTitle
 	{
-		title: 	"Counts"
+		title:	"Counts"
 		icon:	"analysis-bayesian-crosstabs.svg"
 	}
 	
@@ -44,27 +38,8 @@ Description
 
 	GroupTitle
 	{
-		title: 	"Continuous"
-		icon:	"analysis-bayesian-ttest.svg"
-	}
-	
-	Analysis
-	{
-		title:	"Gaussian Estimation"
-		qml:	"LSgaussianestimation.qml"
-		func:	"LSgaussianestimation"
-	}
-
-	Analysis
-	{
-		title:	"Gaussian Testing"
-		qml:		"LSgaussiantesting.qml"
-		func:	"LSgaussiantesting"
-	}
-	
-	GroupTitle
-	{
-		title: 	"Problem of Points"
+		title:	"The Problem of Points"
+        icon:	"learn-bayes-epees.svg"
 	}
 	
 	Analysis
@@ -76,8 +51,8 @@ Description
 
 	Analysis
 	{
-		title:	"Game of Skills"
-		qml:	"LSgameofskills.qml"
-		func:	"LSgameofskills"
+		title:	"Game of Skill"
+		qml:	"LSgameofskill.qml"
+		func:	"LSgameofskill"
 	}
 }

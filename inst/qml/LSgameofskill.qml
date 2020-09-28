@@ -15,14 +15,14 @@
 // License along with this program.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-import QtQuick			2.8
-import QtQuick.Layouts	1.3
-import JASP.Controls	1.0
-import JASP.Widgets		1.0
-import JASP.Theme		1.0
+import QtQuick 2.8
+import QtQuick.Layouts 1.3
+import JASP.Controls 1.0
+import JASP.Widgets 1.0
+import JASP.Theme 1.0
 
-Form
-{
+
+Form {
 	columns: 1
 
 	SimpleTableView
@@ -31,36 +31,34 @@ Form
 		cornerText:			"Player"
 		buttonAddText:		"Add player"
 		buttonDeleteText:	"Delete player"
-		values:				["p(win 1 point)", "Points gained"]
+		values:				["Prior skill parameter", "Points gained"]
 		columnName:			""
         initialColumnCount: 2
         buttonsInRow:       true
         function getColHeaderText(defaultName, colIndex) { return String.fromCharCode(65 + colIndex); }
 	}
 
-
-
 	IntegerField  
 	{ 
-		name:			"winPoints"
-		label:			qsTr("Points needed to win the game")
-		fieldWidth:		50
-		defaultValue:	2
+		name: "winPoints"; 
+		label: qsTr("Points needed to win the game"); 
+		fieldWidth: 50
+		defaultValue: 2 
 	}
 
 	IntegerField   
 	{ 
-		name:			"nSims"
-		label:			qsTr("Number of simulated games")
-		fieldWidth:		50
-		defaultValue:	500  
+		name: "nSims"; 
+		label: qsTr("Number of simulated games"); 
+		fieldWidth: 50
+		defaultValue: 500  
 	}
 
 	CheckBox 
 	{ 
-		name:			"CI"
-		label:			qsTr("95% HPD")
-		checked:		true 
+		name: "CI"; 
+		label: qsTr("95% HPD"); 
+		checked: true 
 	}
 
 }
